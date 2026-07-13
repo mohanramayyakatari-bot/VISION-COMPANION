@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { VoiceAssistant } from "@/components/VoiceAssistant";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Vision Companion — Explainable AI Assistant for the Visually Impaired" },
+      { name: "description", content: "Vision Companion is an AI-powered visual assistant with voice control, real-time object detection, scene understanding, OCR, and indoor and outdoor navigation." },
+      { name: "author", content: "Vision Companion" },
+      { property: "og:title", content: "Vision Companion — AI Visual Assistant" },
+      { property: "og:description", content: "Voice-first AI that sees, explains, and guides. Object detection, scene understanding, navigation, OCR, and more." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -119,8 +120,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <VoiceAssistant />
+      <Toaster />
     </QueryClientProvider>
   );
 }
