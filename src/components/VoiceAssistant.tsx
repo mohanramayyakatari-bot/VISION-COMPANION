@@ -91,6 +91,7 @@ export function VoiceAssistant() {
   const [transcript, setTranscript] = useState("");
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [lang, setLang] = useState<Lang>("en");
   const recRef = useRef<any>(null);
   const awakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -101,7 +102,7 @@ export function VoiceAssistant() {
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = "en-US";
+    rec.lang = LANG_TAG[lang];
     rec.onresult = (e: any) => {
       let text = "";
       for (let i = e.resultIndex; i < e.results.length; i++) text += e.results[i][0].transcript;
@@ -110,7 +111,7 @@ export function VoiceAssistant() {
       if (!awake && WAKE_WORDS.some((w) => lower.includes(w))) {
         setAwake(true);
         setOpen(true);
-        speak("Hello. I am Vision Companion. How can I help you today?");
+        speak(GREETING[lang], lang);
         setLastAction("Awake — listening for a command");
         if (awakeTimer.current) clearTimeout(awakeTimer.current);
         awakeTimer.current = setTimeout(() => setAwake(false), 15000);
@@ -119,8 +120,11 @@ export function VoiceAssistant() {
       if (awake && e.results[e.results.length - 1].isFinal) {
         const match = COMMAND_ROUTES.find((c) => c.keys.some((k) => lower.includes(k)));
         if (match) {
-          speak(match.response);
-          setLastAction(`${match.label} — ${match.response}`);
+          const nextLang = match.langOverride ?? lang;
+          const msg = match.responses[nextLang];
+          speak(msg, nextLang);
+          if (match.langOverride) setLang(match.langOverride);
+          setLastAction(`${match.label} — ${msg}`);
           setAwake(false);
         }
       }
@@ -135,7 +139,7 @@ export function VoiceAssistant() {
     rec.onerror = () => {};
     recRef.current = rec;
     return () => { try { rec.stop(); } catch {} };
-  }, [awake]);
+  }, [awake, lang]);
 
   const toggle = () => {
     const rec = recRef.current;
