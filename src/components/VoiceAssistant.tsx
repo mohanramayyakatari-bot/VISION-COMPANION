@@ -9,28 +9,76 @@ type SRWindow = typeof window & {
 
 const WAKE_WORDS = ["hey vision", "hi vision", "hello vision"];
 
-const COMMAND_ROUTES: { keys: string[]; label: string; response: string }[] = [
-  { keys: ["object", "detect object"], label: "Object Detection", response: "Opening object detection. Point your camera at an object." },
-  { keys: ["scene", "surrounding"], label: "Scene Understanding", response: "Analyzing your surroundings now." },
-  { keys: ["indoor", "navigate indoor"], label: "Indoor Navigation", response: "Starting indoor navigation. Please choose a destination." },
-  { keys: ["outdoor", "map", "navigate outdoor"], label: "Outdoor Navigation", response: "Starting outdoor navigation." },
-  { keys: ["read", "ocr", "text"], label: "Text Reader", response: "Reading text in front of you." },
-  { keys: ["money", "currency", "note"], label: "Currency", response: "Detecting currency notes." },
-  { keys: ["color"], label: "Color", response: "Identifying colors." },
-  { keys: ["face", "friend", "who"], label: "Face Recognition", response: "Scanning for known faces." },
-  { keys: ["hazard", "danger", "safe"], label: "Hazard Detection", response: "Checking for hazards around you." },
-  { keys: ["emergency", "sos", "help"], label: "Emergency", response: "Sending emergency alert to your caregiver." },
-  { keys: ["stop", "quiet"], label: "Stop", response: "Stopping." },
-  { keys: ["repeat"], label: "Repeat", response: "Repeating the last response." },
-  { keys: ["telugu"], label: "Language: Telugu", response: "Switching to Telugu." },
-  { keys: ["hindi"], label: "Language: Hindi", response: "Switching to Hindi." },
-  { keys: ["english"], label: "Language: English", response: "Switching to English." },
+type Lang = "en" | "te" | "hi";
+
+type Command = {
+  keys: string[];
+  label: string;
+  responses: Record<Lang, string>;
+  langOverride?: Lang;
+};
+
+const COMMAND_ROUTES: Command[] = [
+  { keys: ["object", "detect object", "what is this", "what's this", "identify"], label: "Object Detection",
+    responses: { en: "Opening object detection. Point your camera at an object.", te: "వస్తువును గుర్తిస్తున్నాను. కెమెరాను వస్తువుపై ఉంచండి.", hi: "ऑब्जेक्ट डिटेक्शन खोल रहा हूँ। कैमरा वस्तु की ओर रखें।" } },
+  { keys: ["scene", "surrounding", "describe", "around me", "where am i"], label: "Scene Understanding",
+    responses: { en: "Analyzing your surroundings now.", te: "మీ చుట్టూ ఉన్న దృశ్యాన్ని విశ్లేషిస్తున్నాను.", hi: "आपके आस-पास का दृश्य समझ रहा हूँ।" } },
+  { keys: ["indoor", "navigate indoor", "inside", "room"], label: "Indoor Navigation",
+    responses: { en: "Starting indoor navigation. Please choose a destination.", te: "లోపలి మార్గదర్శకాన్ని ప్రారంభిస్తున్నాను.", hi: "इनडोर नेविगेशन शुरू कर रहा हूँ।" } },
+  { keys: ["outdoor", "map", "navigate outdoor", "take me", "directions"], label: "Outdoor Navigation",
+    responses: { en: "Starting outdoor navigation.", te: "బయటి మార్గదర్శకాన్ని ప్రారంభిస్తున్నాను.", hi: "आउटडोर नेविगेशन शुरू कर रहा हूँ।" } },
+  { keys: ["read", "ocr", "text", "book", "sign"], label: "Text Reader",
+    responses: { en: "Reading text in front of you.", te: "మీ ముందున్న వచనాన్ని చదువుతున్నాను.", hi: "आपके सामने का पाठ पढ़ रहा हूँ।" } },
+  { keys: ["money", "currency", "note", "rupee", "cash"], label: "Currency",
+    responses: { en: "Detecting currency notes.", te: "కరెన్సీ నోట్లను గుర్తిస్తున్నాను.", hi: "नोटों की पहचान कर रहा हूँ।" } },
+  { keys: ["color", "colour", "shade"], label: "Color",
+    responses: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंगों की पहचान कर रहा हूँ।" } },
+  { keys: ["face", "friend", "who is", "recognize"], label: "Face Recognition",
+    responses: { en: "Scanning for known faces.", te: "పరిచయమున్న ముఖాలను వెతుకుతున్నాను.", hi: "जानी-पहचानी शक्लें ढूँढ रहा हूँ।" } },
+  { keys: ["hazard", "danger", "safe", "obstacle"], label: "Hazard Detection",
+    responses: { en: "Checking for hazards around you.", te: "మీ చుట్టూ ప్రమాదాలను తనిఖీ చేస్తున్నాను.", hi: "आस-पास खतरों की जाँच कर रहा हूँ।" } },
+  { keys: ["product", "barcode", "medicine"], label: "Product",
+    responses: { en: "Scanning the product label.", te: "ఉత్పత్తి లేబుల్‌ను స్కాన్ చేస్తున్నాను.", hi: "प्रोडक्ट लेबल स्कैन कर रहा हूँ।" } },
+  { keys: ["document", "scan document", "page"], label: "Document Scan",
+    responses: { en: "Scanning the document.", te: "పత్రాన్ని స్కాన్ చేస్తున్నాను.", hi: "दस्तावेज़ स्कैन कर रहा हूँ।" } },
+  { keys: ["count"], label: "Count Objects",
+    responses: { en: "Counting objects in view.", te: "కనిపిస్తున్న వస్తువులను లెక్కిస్తున్నాను.", hi: "दिख रही वस्तुएँ गिन रहा हूँ।" } },
+  { keys: ["bus", "bus number"], label: "Bus Number",
+    responses: { en: "Reading the bus route number.", te: "బస్సు నంబర్‌ను చదువుతున్నాను.", hi: "बस नंबर पढ़ रहा हूँ।" } },
+  { keys: ["translate"], label: "Translate",
+    responses: { en: "Translating the recognized text.", te: "గుర్తించిన వచనాన్ని అనువదిస్తున్నాను.", hi: "पहचाने गए पाठ का अनुवाद कर रहा हूँ।" } },
+  { keys: ["remind", "reminder", "medicine at", "alarm"], label: "Reminder",
+    responses: { en: "Reminder saved.", te: "గుర్తు చేయవలసినది భద్రపరచబడింది.", hi: "रिमाइंडर सहेजा गया।" } },
+  { keys: ["dashboard", "open dashboard", "home"], label: "Dashboard",
+    responses: { en: "Opening the dashboard.", te: "డాష్‌బోర్డును తెరుస్తున్నాను.", hi: "डैशबोर्ड खोल रहा हूँ।" } },
+  { keys: ["emergency", "sos", "help me", "call for help"], label: "Emergency",
+    responses: { en: "Sending emergency alert to your caregiver with your live location.", te: "మీ సంరక్షకునికి అత్యవసర హెచ్చరిక పంపుతున్నాను.", hi: "आपके देखभालकर्ता को आपातकालीन अलर्ट भेज रहा हूँ।" } },
+  { keys: ["stop", "quiet", "silence", "mute"], label: "Stop",
+    responses: { en: "Stopping.", te: "ఆగుతున్నాను.", hi: "रुक रहा हूँ।" } },
+  { keys: ["repeat", "again", "say again"], label: "Repeat",
+    responses: { en: "Repeating the last response.", te: "చివరి సమాధానాన్ని మళ్లీ చెబుతున్నాను.", hi: "पिछला उत्तर दोहरा रहा हूँ।" } },
+  { keys: ["battery", "status"], label: "Status",
+    responses: { en: "All systems online. Battery at eighty two percent.", te: "అన్ని వ్యవస్థలు సిద్ధంగా ఉన్నాయి. బ్యాటరీ 82 శాతం.", hi: "सभी सिस्टम ऑनलाइन। बैटरी 82 प्रतिशत।" } },
+  { keys: ["telugu"], label: "Language: Telugu", langOverride: "te",
+    responses: { en: "Switching to Telugu.", te: "తెలుగుకి మారుస్తున్నాను.", hi: "तेलुगु में बदल रहा हूँ।" } },
+  { keys: ["hindi"], label: "Language: Hindi", langOverride: "hi",
+    responses: { en: "Switching to Hindi.", te: "హిందీకి మారుస్తున్నాను.", hi: "हिंदी में बदल रहा हूँ।" } },
+  { keys: ["english"], label: "Language: English", langOverride: "en",
+    responses: { en: "Switching to English.", te: "ఇంగ్లీషుకి మారుస్తున్నాను.", hi: "अंग्रेज़ी में बदल रहा हूँ।" } },
 ];
 
-function speak(text: string) {
+const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
+const GREETING: Record<Lang, string> = {
+  en: "Hello. I am Vision Companion. How can I help you today?",
+  te: "నమస్తే. నేను విజన్ కంపానియన్. మీకు ఎలా సహాయపడగలను?",
+  hi: "नमस्ते। मैं विजन कंपेनियन हूँ। मैं आपकी कैसे मदद कर सकता हूँ?",
+};
+
+function speak(text: string, lang: Lang = "en") {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
+  u.lang = LANG_TAG[lang];
   u.rate = 1;
   u.pitch = 1;
   window.speechSynthesis.speak(u);
