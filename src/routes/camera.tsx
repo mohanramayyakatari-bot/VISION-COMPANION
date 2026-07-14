@@ -10,6 +10,11 @@ import {
 
 export const Route = createFileRoute("/camera")({
   component: CameraPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    mode: typeof s.mode === "string" ? (s.mode as Mode) : undefined,
+    lang: typeof s.lang === "string" ? (s.lang as Lang) : undefined,
+    auto: s.auto === "1" || s.auto === true,
+  }),
   head: () => ({
     meta: [
       { title: "Live Camera — Vision Companion" },
@@ -46,6 +51,7 @@ function speak(text: string, lang: Lang) {
 }
 
 function CameraPage() {
+  const search = Route.useSearch();
   const analyze = useServerFn(analyzeFrame);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -54,11 +60,20 @@ function CameraPage() {
   const [ready, setReady] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<Mode>("scene");
-  const [lang, setLang] = useState<Lang>("en");
+  const [mode, setMode] = useState<Mode>(search.mode ?? "scene");
+  const [lang, setLang] = useState<Lang>(search.lang ?? "en");
   const [result, setResult] = useState<string>("");
-  const [auto, setAuto] = useState(false);
+  const [auto, setAuto] = useState(!!search.auto);
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-run once the camera is ready if a mode was passed via URL (voice command).
+  useEffect(() => {
+    if (ready && search.mode) {
+      const t = setTimeout(() => run(search.mode as Mode), 400);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   const startCamera = async (dir: "environment" | "user" = facing) => {
     setErr(null);
