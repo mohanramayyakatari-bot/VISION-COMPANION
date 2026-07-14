@@ -1,0 +1,245 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useRef, useState } from "react";
+import { analyzeFrame } from "@/lib/vision.functions";
+import { Button } from "@/components/ui/button";
+import {
+  Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
+  Navigation, Users, Package, Loader2, ArrowLeft, RefreshCw, Play, Square,
+} from "lucide-react";
+
+export const Route = createFileRoute("/camera")({
+  component: CameraPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    mode: typeof s.mode === "string" ? (s.mode as Mode) : undefined,
+    lang: typeof s.lang === "string" ? (s.lang as Lang) : undefined,
+    auto: s.auto === "1" || s.auto === true,
+  }),
+  head: () => ({
+    meta: [
+      { title: "Live Camera — Vision Companion" },
+      { name: "description", content: "Real-time AI vision assistant. Point your camera and hear what's in front of you." },
+    ],
+  }),
+});
+
+type Lang = "en" | "te" | "hi";
+type Mode = "scene" | "object" | "read" | "currency" | "color" | "hazard" | "navigate" | "face" | "product";
+
+const MODES: { id: Mode; label: string; icon: any; hint: Record<Lang, string> }[] = [
+  { id: "scene", label: "Describe Scene", icon: Eye, hint: { en: "Analyzing your surroundings.", te: "మీ చుట్టూ ఉన్నదాన్ని విశ్లేషిస్తున్నాను.", hi: "आपके आस-पास देख रहा हूँ।" } },
+  { id: "object", label: "Detect Objects", icon: Package, hint: { en: "Detecting objects.", te: "వస్తువులను గుర్తిస్తున్నాను.", hi: "वस्तुएँ पहचान रहा हूँ।" } },
+  { id: "read", label: "Read Text", icon: ScanText, hint: { en: "Reading the text.", te: "వచనాన్ని చదువుతున్నాను.", hi: "पाठ पढ़ रहा हूँ।" } },
+  { id: "currency", label: "Money", icon: Coins, hint: { en: "Checking the currency.", te: "కరెన్సీని పరిశీలిస్తున్నాను.", hi: "नोट पहचान रहा हूँ।" } },
+  { id: "color", label: "Color", icon: Palette, hint: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंग पहचान रहा हूँ।" } },
+  { id: "hazard", label: "Hazards", icon: ShieldAlert, hint: { en: "Checking for hazards.", te: "ప్రమాదాలను తనిఖీ చేస్తున్నాను.", hi: "खतरे देख रहा हूँ।" } },
+  { id: "navigate", label: "Navigate", icon: Navigation, hint: { en: "Guiding your next step.", te: "మీ తదుపరి అడుగును సూచిస్తున్నాను.", hi: "अगला कदम बता रहा हूँ।" } },
+  { id: "face", label: "People", icon: Users, hint: { en: "Looking for people.", te: "మనుషుల కోసం చూస్తున్నాను.", hi: "लोगों को देख रहा हूँ।" } },
+  { id: "product", label: "Product Label", icon: Package, hint: { en: "Reading the label.", te: "లేబుల్ చదువుతున్నాను.", hi: "लेबल पढ़ रहा हूँ।" } },
+];
+
+const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
+const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
+
+function speak(text: string, lang: Lang) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = LANG_TAG[lang];
+  u.rate = 1;
+  window.speechSynthesis.speak(u);
+}
+
+function CameraPage() {
+  const search = Route.useSearch();
+  const analyze = useServerFn(analyzeFrame);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const [ready, setReady] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<Mode>(search.mode ?? "scene");
+  const [lang, setLang] = useState<Lang>(search.lang ?? "en");
+  const [result, setResult] = useState<string>("");
+  const [auto, setAuto] = useState(!!search.auto);
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-run once the camera is ready if a mode was passed via URL (voice command).
+  useEffect(() => {
+    if (ready && search.mode) {
+      const t = setTimeout(() => run(search.mode as Mode), 400);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  const startCamera = async (dir: "environment" | "user" = facing) => {
+    setErr(null);
+    try {
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: dir }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setReady(true);
+    } catch (e: any) {
+      setErr(e?.message ?? "Camera access was denied. Enable camera permission in your browser.");
+      setReady(false);
+    }
+  };
+
+  useEffect(() => {
+    startCamera(facing);
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      window.speechSynthesis?.cancel();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facing]);
+
+  const captureBase64 = (): string | null => {
+    const v = videoRef.current, c = canvasRef.current;
+    if (!v || !c || !v.videoWidth) return null;
+    const w = Math.min(v.videoWidth, 960);
+    const h = Math.round((v.videoHeight / v.videoWidth) * w);
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(v, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", 0.78);
+  };
+
+  const run = async (m: Mode = mode) => {
+    if (busy) return;
+    const img = captureBase64();
+    if (!img) { setErr("Camera not ready yet."); return; }
+    setBusy(true); setErr(null);
+    const meta = MODES.find((x) => x.id === m)!;
+    speak(meta.hint[lang], lang);
+    try {
+      const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang } });
+      setResult(text);
+      speak(text, lang);
+    } catch (e: any) {
+      const msg = e?.message ?? "Something went wrong.";
+      setErr(msg);
+      speak(msg, lang);
+    } finally {
+      setBusy(false);
+      if (auto) autoTimer.current = setTimeout(() => run(m), 4000);
+    }
+  };
+
+  const toggleAuto = () => {
+    setAuto((a) => {
+      const next = !a;
+      if (!next && autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+      if (next) setTimeout(() => run(mode), 100);
+      return next;
+    });
+  };
+
+  return (
+    <div className="min-h-dvh bg-background text-foreground flex flex-col">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" /> Back
+        </Link>
+        <div className="text-sm font-semibold flex items-center gap-2">
+          <CameraIcon className="size-4 text-primary-glow" /> Live Camera
+        </div>
+        <div className="flex gap-1">
+          {(["en", "te", "hi"] as Lang[]).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${lang === l ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+              aria-label={`Switch to ${LANG_LABEL[l]}`}
+            >
+              {LANG_LABEL[l]}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <div className="relative flex-1 bg-black overflow-hidden">
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <canvas ref={canvasRef} className="hidden" />
+        {!ready && !err && (
+          <div className="absolute inset-0 flex items-center justify-center text-white/80">
+            <Loader2 className="size-6 animate-spin mr-2" /> Starting camera…
+          </div>
+        )}
+        {err && (
+          <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+            <div className="glass-card rounded-2xl p-6 max-w-sm">
+              <p className="text-sm mb-4">{err}</p>
+              <Button onClick={() => startCamera(facing)} variant="secondary">
+                <RefreshCw className="size-4" /> Retry
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {result && (
+          <div className="absolute left-3 right-3 bottom-3 glass-card rounded-2xl p-4 max-h-[38%] overflow-auto">
+            <p className="text-xs text-primary-glow mb-1">AI · {MODES.find((m) => m.id === mode)?.label}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{result}</p>
+          </div>
+        )}
+
+        {busy && (
+          <div className="absolute top-3 left-3 glass-card rounded-full px-3 py-1.5 text-xs flex items-center gap-2">
+            <Loader2 className="size-3 animate-spin" /> Analyzing…
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-border bg-background/95 backdrop-blur">
+        <div className="px-3 py-3 flex gap-2 overflow-x-auto">
+          {MODES.map((m) => {
+            const Icon = m.icon;
+            const active = mode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => { setMode(m.id); run(m.id); }}
+                disabled={!ready || busy}
+                className={`shrink-0 min-w-[86px] rounded-xl px-3 py-2 flex flex-col items-center gap-1 text-xs transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground hover:bg-secondary/70"} disabled:opacity-50`}
+              >
+                <Icon className="size-4" />
+                <span className="font-medium">{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="px-3 pb-4 flex items-center justify-between gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setFacing(facing === "environment" ? "user" : "environment")}>
+            <RefreshCw className="size-4" /> Flip
+          </Button>
+          <Button size="lg" onClick={() => run(mode)} disabled={!ready || busy} className="flex-1 bg-gradient-primary text-primary-foreground shadow-glow">
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <CameraIcon className="size-4" />}
+            Capture &amp; Speak
+          </Button>
+          <Button size="sm" variant={auto ? "default" : "secondary"} onClick={toggleAuto} disabled={!ready}>
+            {auto ? <Square className="size-4" /> : <Play className="size-4" />}
+            {auto ? "Stop" : "Live"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
