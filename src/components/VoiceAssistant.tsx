@@ -99,6 +99,7 @@ export function VoiceAssistant() {
   const [lang, setLang] = useState<Lang>("en");
   const recRef = useRef<any>(null);
   const awakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const w = window as SRWindow;
@@ -129,6 +130,14 @@ export function VoiceAssistant() {
           const msg = match.responses[nextLang];
           speak(msg, nextLang);
           if (match.langOverride) setLang(match.langOverride);
+          if (match.route) {
+            navigate({
+              to: match.route as any,
+              search: match.cameraMode
+                ? ({ mode: match.cameraMode, lang: nextLang } as any)
+                : ({ lang: nextLang } as any),
+            }).catch(() => {});
+          }
           setLastAction(`${match.label} — ${msg}`);
           setAwake(false);
         }
