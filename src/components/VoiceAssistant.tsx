@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "@tanstack/react-router";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
@@ -16,6 +17,8 @@ type Command = {
   label: string;
   responses: Record<Lang, string>;
   langOverride?: Lang;
+  route?: string;
+  cameraMode?: string;
 };
 
 const COMMAND_ROUTES: Command[] = [
