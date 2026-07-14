@@ -121,11 +121,16 @@ function Index() {
         <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
           Click the microphone in the bottom right, then say <span className="text-gradient font-semibold">“Hey Vision”</span>. It responds instantly.
         </p>
-        <Link to="/dashboard">
-          <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
-            Open Dashboard <ArrowRight className="size-4" />
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link to="/camera">
+            <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
+              Open Live Camera <ArrowRight className="size-4" />
+            </Button>
+          </Link>
+          <Link to="/dashboard">
+            <Button size="lg" variant="secondary">Open Dashboard</Button>
+          </Link>
+        </div>
       </section>
 
       <Footer />
