@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
-import { peopleRefsForOrigin, PEOPLE } from "@/lib/people";
+import { loadPeopleRefsAsDataUrls, PEOPLE } from "@/lib/people";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
@@ -126,10 +126,7 @@ function CameraPage() {
     const meta = MODES.find((x) => x.id === m)!;
     speak(meta.hint[lang], lang);
     try {
-      const peopleRefs =
-        m === "face" && typeof window !== "undefined"
-          ? peopleRefsForOrigin(window.location.origin)
-          : undefined;
+      const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
       const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang, peopleRefs } });
       setResult(text);
       speak(text, lang);
