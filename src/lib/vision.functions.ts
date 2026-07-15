@@ -6,6 +6,9 @@ const InputSchema = z.object({
   mode: z.string(),
   language: z.enum(["en", "te", "hi"]).default("en"),
   question: z.string().optional(),
+  peopleRefs: z
+    .array(z.object({ name: z.string(), url: z.string().url() }))
+    .optional(),
 });
 
 const LANG_NAME: Record<string, string> = {
@@ -30,7 +33,7 @@ const MODE_PROMPTS: Record<string, string> = {
   navigate:
     "Give one short walking instruction based on this image: direction, distance in meters, and any obstacle to avoid.",
   face:
-    "Describe any people visible: count, apparent position, what they seem to be doing. Do NOT guess identity.",
+    "You are given one or more REFERENCE photos of known trusted people (labelled with their name), followed by a LIVE camera photo. For every person visible in the LIVE photo, decide if their face matches one of the reference people. Only announce a name when you are highly confident. State position (left/center/right, approx distance) and what they are doing. If a visible person does not match any reference, call them 'an unknown person'. Never guess identity of unknown people.",
   product:
     "Read the product name, brand, and any dosage or expiry visible on the label in one short sentence.",
   ask: "Answer the user's question about the image briefly and clearly.",
@@ -45,17 +48,21 @@ export const analyzeFrame = createServerFn({ method: "POST" })
     const system = `You are Vision Companion, a real-time AI assistant for a visually impaired user. Always answer in ${LANG_NAME[data.language]}. Speak in short, natural spoken sentences suitable for text-to-speech. Never use markdown, bullet points, or emojis.`;
     const userText = data.question ? `${modePrompt}\n\nUser question: ${data.question}` : modePrompt;
 
+    const userContent: Array<Record<string, unknown>> = [{ type: "text", text: userText }];
+    if (data.mode === "face" && data.peopleRefs?.length) {
+      for (const p of data.peopleRefs) {
+        userContent.push({ type: "text", text: `Reference photo — this person is ${p.name}:` });
+        userContent.push({ type: "image_url", image_url: { url: p.url } });
+      }
+      userContent.push({ type: "text", text: "LIVE camera photo — identify people here:" });
+    }
+    userContent.push({ type: "image_url", image_url: { url: data.imageBase64 } });
+
     const body = {
       model: "google/gemini-3-flash-preview",
       messages: [
         { role: "system", content: system },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userText },
-            { type: "image_url", image_url: { url: data.imageBase64 } },
-          ],
-        },
+        { role: "user", content: userContent },
       ],
     };
 
