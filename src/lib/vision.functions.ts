@@ -20,6 +20,11 @@ const LANG_NAME: Record<string, string> = {
 const MODE_PROMPTS: Record<string, string> = {
   scene:
     "You are Vision Companion, guiding a visually impaired user. Describe the scene in this photo in 2-3 short spoken sentences. Mention people, key objects, layout (left/center/right), and anything unsafe. Be concrete and calm.",
+  safety:
+    "You are Vision Companion assisting a blind pedestrian in real time. Respond with a single line, MAX 12 words, and START it with exactly one tag:\n" +
+    "HAZARD: <urgent warning naming the danger and where it is> — use this ONLY if there is a clear immediate danger (knife, fire, smoke, vehicle, bicycle, stairs edge, hole, open drain, broken glass, aggressive animal, falling object, live wire).\n" +
+    "SCENE: <what is directly in front of the user right now> — use this otherwise.\n" +
+    "Never add extra sentences. Never repeat prior descriptions. If nothing changed since a person would last look, still describe what is currently there.",
   object:
     "List the most important objects in this image with their approximate position (left/center/right, near/far). Keep it under 3 short sentences, spoken naturally.",
   read:
