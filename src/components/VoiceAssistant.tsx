@@ -124,6 +124,22 @@ export function VoiceAssistant() {
         return;
       }
       if (awake && e.results[e.results.length - 1].isFinal) {
+        // "navigate to X" / "take me to X" / "directions to X" → open Google Maps directions
+        const destMatch = lower.match(/(?:navigate|take me|go|directions|guide me)\s+to\s+(.+)$/i);
+        if (destMatch?.[1]) {
+          const dest = destMatch[1].replace(/[.?!,]+$/, "").trim();
+          const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=walking`;
+          const msgs: Record<Lang, string> = {
+            en: `Opening walking directions to ${dest}.`,
+            te: `${dest} కు నడక మార్గదర్శకాన్ని తెరుస్తున్నాను.`,
+            hi: `${dest} तक पैदल दिशा-निर्देश खोल रहा हूँ।`,
+          };
+          speak(msgs[lang], lang);
+          setLastAction(`Navigate → ${dest}`);
+          window.open(url, "_blank", "noopener");
+          setAwake(false);
+          return;
+        }
         const match = COMMAND_ROUTES.find((c) => c.keys.some((k) => lower.includes(k)));
         if (match) {
           const nextLang = match.langOverride ?? lang;
