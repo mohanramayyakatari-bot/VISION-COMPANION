@@ -6,7 +6,7 @@ import { loadPeopleRefsAsDataUrls, PEOPLE } from "@/lib/people";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
-  Navigation, Users, Package, Loader2, ArrowLeft, RefreshCw, Play, Square,
+  Navigation, Users, Package, Loader2, ArrowLeft, RefreshCw, Play, Square, Siren,
 } from "lucide-react";
 
 export const Route = createFileRoute("/camera")({
@@ -25,9 +25,10 @@ export const Route = createFileRoute("/camera")({
 });
 
 type Lang = "en" | "te" | "hi";
-type Mode = "scene" | "object" | "read" | "currency" | "color" | "hazard" | "navigate" | "face" | "product";
+type Mode = "safety" | "scene" | "object" | "read" | "currency" | "color" | "hazard" | "navigate" | "face" | "product";
 
 const MODES: { id: Mode; label: string; icon: any; hint: Record<Lang, string> }[] = [
+  { id: "safety", label: "Safety Live", icon: Siren, hint: { en: "Continuous safety watch on.", te: "నిరంతర భద్రతా పర్యవేక్షణ.", hi: "लगातार सुरक्षा निगरानी।" } },
   { id: "scene", label: "Describe Scene", icon: Eye, hint: { en: "Analyzing your surroundings.", te: "మీ చుట్టూ ఉన్నదాన్ని విశ్లేషిస్తున్నాను.", hi: "आपके आस-पास देख रहा हूँ।" } },
   { id: "object", label: "Detect Objects", icon: Package, hint: { en: "Detecting objects.", te: "వస్తువులను గుర్తిస్తున్నాను.", hi: "वस्तुएँ पहचान रहा हूँ।" } },
   { id: "read", label: "Read Text", icon: ScanText, hint: { en: "Reading the text.", te: "వచనాన్ని చదువుతున్నాను.", hi: "पाठ पढ़ रहा हूँ।" } },
@@ -42,13 +43,23 @@ const MODES: { id: Mode; label: string; icon: any; hint: Record<Lang, string> }[
 const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
 const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 
-function speak(text: string, lang: Lang) {
+function speak(text: string, lang: Lang, opts?: { urgent?: boolean; interrupt?: boolean }) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
+  // Only cancel current speech for urgent/interrupt calls, so routine updates don't chop each other.
+  if (opts?.interrupt || opts?.urgent) window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = LANG_TAG[lang];
-  u.rate = 1;
+  u.rate = opts?.urgent ? 1.15 : 1;
+  u.pitch = opts?.urgent ? 1.2 : 1;
+  u.volume = 1;
   window.speechSynthesis.speak(u);
+}
+
+// Extract a destination from phrases like "navigate to X" / "take me to X".
+function parseDestination(q?: string): string | null {
+  if (!q) return null;
+  const m = q.match(/(?:navigate|take me|go|directions|guide me)\s+to\s+(.+)$/i);
+  return m?.[1]?.trim() || null;
 }
 
 function CameraPage() {
@@ -66,6 +77,8 @@ function CameraPage() {
   const [result, setResult] = useState<string>("");
   const [auto, setAuto] = useState(!!search.auto);
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSpoken = useRef<string>("");
+  const inFlight = useRef(false);
 
   // Auto-run once the camera is ready if a mode was passed via URL (voice command).
   useEffect(() => {
@@ -119,24 +132,48 @@ function CameraPage() {
   };
 
   const run = async (m: Mode = mode) => {
-    if (busy) return;
+    if (inFlight.current) return;
     const img = captureBase64();
     if (!img) { setErr("Camera not ready yet."); return; }
+    inFlight.current = true;
     setBusy(true); setErr(null);
     const meta = MODES.find((x) => x.id === m)!;
-    speak(meta.hint[lang], lang);
+    // Skip the "Analyzing…" chatter in live mode — it drowns the actual answer.
+    if (!auto) speak(meta.hint[lang], lang);
     try {
       const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
       const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang, peopleRefs } });
       setResult(text);
-      speak(text, lang);
+
+      // Safety mode: interrupt immediately for HAZARD, otherwise low-key describe scene.
+      if (m === "safety") {
+        const isHazard = /^\s*HAZARD\s*:/i.test(text);
+        const clean = text.replace(/^\s*(HAZARD|SCENE)\s*:\s*/i, "").trim();
+        if (!clean) return;
+        if (isHazard) {
+          lastSpoken.current = "";
+          speak(clean, lang, { urgent: true });
+        } else if (clean !== lastSpoken.current) {
+          lastSpoken.current = clean;
+          speak(clean, lang);
+        }
+      } else if (text && text !== lastSpoken.current) {
+        lastSpoken.current = text;
+        speak(text, lang, { interrupt: !auto });
+      }
     } catch (e: any) {
       const msg = e?.message ?? "Something went wrong.";
       setErr(msg);
-      speak(msg, lang);
+      speak(msg, lang, { interrupt: true });
     } finally {
+      inFlight.current = false;
       setBusy(false);
-      if (auto) autoTimer.current = setTimeout(() => run(m), m === "face" ? 2500 : 1800);
+      // Non-blocking: schedule next capture immediately; don't wait for TTS.
+      // Safety mode runs as fast as the network allows (~800ms round-trip typical).
+      if (auto) {
+        const delay = m === "face" ? 2200 : m === "safety" ? 250 : 1200;
+        autoTimer.current = setTimeout(() => run(m), delay);
+      }
     }
   };
 
@@ -225,7 +262,7 @@ function CameraPage() {
             return (
               <button
                 key={m.id}
-                onClick={() => { setMode(m.id); run(m.id); }}
+                onClick={() => { setMode(m.id); lastSpoken.current = ""; run(m.id); }}
                 disabled={!ready || busy}
                 className={`shrink-0 min-w-[86px] rounded-xl px-3 py-2 flex flex-col items-center gap-1 text-xs transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground hover:bg-secondary/70"} disabled:opacity-50`}
               >
