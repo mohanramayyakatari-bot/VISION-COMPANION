@@ -7,7 +7,7 @@ const InputSchema = z.object({
   language: z.enum(["en", "te", "hi"]).default("en"),
   question: z.string().optional(),
   peopleRefs: z
-    .array(z.object({ name: z.string(), url: z.string().url() }))
+    .array(z.object({ name: z.string(), url: z.string().min(10) }))
     .optional(),
 });
 
