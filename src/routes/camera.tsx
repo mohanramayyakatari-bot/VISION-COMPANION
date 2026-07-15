@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
+import { peopleRefsForOrigin, PEOPLE } from "@/lib/people";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
@@ -125,7 +126,11 @@ function CameraPage() {
     const meta = MODES.find((x) => x.id === m)!;
     speak(meta.hint[lang], lang);
     try {
-      const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang } });
+      const peopleRefs =
+        m === "face" && typeof window !== "undefined"
+          ? peopleRefsForOrigin(window.location.origin)
+          : undefined;
+      const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang, peopleRefs } });
       setResult(text);
       speak(text, lang);
     } catch (e: any) {
@@ -134,7 +139,7 @@ function CameraPage() {
       speak(msg, lang);
     } finally {
       setBusy(false);
-      if (auto) autoTimer.current = setTimeout(() => run(m), 4000);
+      if (auto) autoTimer.current = setTimeout(() => run(m), m === "face" ? 2500 : 1800);
     }
   };
 
@@ -198,6 +203,13 @@ function CameraPage() {
           <div className="absolute left-3 right-3 bottom-3 glass-card rounded-2xl p-4 max-h-[38%] overflow-auto">
             <p className="text-xs text-primary-glow mb-1">AI · {MODES.find((m) => m.id === mode)?.label}</p>
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{result}</p>
+          </div>
+        )}
+
+        {mode === "face" && (
+          <div className="absolute top-3 right-3 glass-card rounded-xl px-3 py-2 text-[10px] max-w-[55%]">
+            <p className="text-primary-glow mb-1">Trusted contacts ({PEOPLE.length})</p>
+            <p className="text-muted-foreground leading-tight">{PEOPLE.map((p) => p.name).join(" · ")}</p>
           </div>
         )}
 
