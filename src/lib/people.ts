@@ -13,3 +13,27 @@ export const PEOPLE: Person[] = [
 export function peopleRefsForOrigin(origin: string) {
   return PEOPLE.map((p) => ({ name: p.name, url: `${origin}${p.file}` }));
 }
+
+let cachedRefs: Array<{ name: string; url: string }> | null = null;
+
+export async function loadPeopleRefsAsDataUrls() {
+  if (cachedRefs) return cachedRefs;
+  const out: Array<{ name: string; url: string }> = [];
+  for (const p of PEOPLE) {
+    try {
+      const res = await fetch(p.file);
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) continue;
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onloadend = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+      });
+      out.push({ name: p.name, url: dataUrl });
+    } catch { /* skip */ }
+  }
+  cachedRefs = out;
+  return out;
+}
