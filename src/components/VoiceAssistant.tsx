@@ -264,6 +264,7 @@ export function VoiceAssistant() {
                 <p className="text-xs text-muted-foreground">
                   {!supported ? "Voice not supported in this browser" : awake ? "Listening for command…" : listening ? "Say “Hey Vision”" : "Idle"}
                 </p>
+                <p className="text-[10px] text-primary-glow mt-0.5">Language · {LANG_LABEL[lang]}</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Close">
@@ -290,6 +291,17 @@ export function VoiceAssistant() {
             </div>
           )}
           <div className="mt-3 flex gap-2">
+            <div className="flex gap-1">
+              {(["en", "te", "hi"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => { setLang(l); langRef.current = l; speak(GREETING[l], l); }}
+                  className={`px-2 py-1 rounded-md text-[10px] font-medium ${lang === l ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                >
+                  {LANG_LABEL[l]}
+                </button>
+              ))}
+            </div>
             <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, color, face, hazard, and emergency."); }}>
               Help
             </Button>
