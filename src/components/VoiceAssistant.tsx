@@ -194,7 +194,6 @@ export function VoiceAssistant() {
         const destMatch = raw.match(/(?:navigate|take me|go|directions|guide me|తీసుకెళ్|తీసుకెళ్లు|ले चलो|ले जाओ)\s*(?:to\s+|కి\s+|కు\s+)?(.+)$/i);
         if (destMatch?.[1]) {
           const dest = destMatch[1].replace(/[.?!,]+$/, "").trim();
-          const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=walking`;
           const msgs: Record<Lang, string> = {
             en: `Opening walking directions to ${dest}.`,
             te: `${dest} కు నడక మార్గదర్శకాన్ని తెరుస్తున్నాను.`,
@@ -202,7 +201,7 @@ export function VoiceAssistant() {
           };
           speak(msgs[detected], detected);
           setLastAction(`Navigate → ${dest}`);
-          window.open(url, "_blank", "noopener");
+          navigate({ to: "/map" as any, search: { dest, lang: detected, auto: true } as any }).catch(() => {});
           setAwake(false);
           return;
         }
