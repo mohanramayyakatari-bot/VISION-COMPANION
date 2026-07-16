@@ -8,7 +8,26 @@ type SRWindow = typeof window & {
   webkitSpeechRecognition?: any;
 };
 
-const WAKE_WORDS = ["hey vision", "hi vision", "hello vision"];
+const WAKE_WORDS = [
+  "hey vision", "hi vision", "hello vision",
+  "హే విజన్", "విజన్",
+  "हे विजन", "हैलो विजन", "विजन",
+];
+
+// Voice-only language switch phrases in all three languages.
+const LANG_SWITCH: { lang: Lang; keys: string[] }[] = [
+  { lang: "te", keys: ["telugu", "తెలుగు", "తెలుగులో", "तेलुगु", "speak telugu", "switch to telugu", "change language to telugu", "తెలుగులో మాట్లాడు", "తెలుగులో మాట్లాడండి"] },
+  { lang: "hi", keys: ["hindi", "हिंदी", "हिन्दी", "हिंदी में", "हिन्दी में बात", "speak hindi", "switch to hindi", "change language to hindi", "हिंदी में बात करो"] },
+  { lang: "en", keys: ["english", "इंग्लिश", "अंग्रेज़ी", "అంగ్లం", "ఇంగ్లీష్", "speak english", "switch to english", "change language to english"] },
+];
+
+// Detect language from Unicode script of the transcript.
+function detectLang(text: string): Lang | null {
+  if (/[\u0C00-\u0C7F]/.test(text)) return "te"; // Telugu
+  if (/[\u0900-\u097F]/.test(text)) return "hi"; // Devanagari
+  if (/[a-zA-Z]/.test(text)) return "en";
+  return null;
+}
 
 type Lang = "en" | "te" | "hi";
 
@@ -73,17 +92,36 @@ const COMMAND_ROUTES: Command[] = [
 ];
 
 const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
+const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 const GREETING: Record<Lang, string> = {
   en: "Hello. I am Vision Companion. How can I help you today?",
   te: "నమస్తే. నేను విజన్ కంపానియన్. మీకు ఎలా సహాయపడగలను?",
   hi: "नमस्ते। मैं विजन कंपेनियन हूँ। मैं आपकी कैसे मदद कर सकता हूँ?",
 };
 
+// Pick the best available native voice for a language (Google/Microsoft neural).
+function pickVoice(lang: Lang): SpeechSynthesisVoice | undefined {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const voices = window.speechSynthesis.getVoices();
+  const tag = LANG_TAG[lang].toLowerCase();
+  const short = tag.split("-")[0];
+  const exact = voices.filter((v) => v.lang?.toLowerCase() === tag);
+  const loose = voices.filter((v) => v.lang?.toLowerCase().startsWith(short));
+  const pool = exact.length ? exact : loose;
+  // Prefer Google/Microsoft/Neural voices which sound natural in te-IN and hi-IN.
+  const preferred = pool.find((v) => /google|natural|neural|wavenet/i.test(v.name))
+    || pool.find((v) => /microsoft/i.test(v.name))
+    || pool[0];
+  return preferred;
+}
+
 function speak(text: string, lang: Lang = "en") {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = LANG_TAG[lang];
+  const v = pickVoice(lang);
+  if (v) u.voice = v;
   u.rate = 1;
   u.pitch = 1;
   window.speechSynthesis.speak(u);
@@ -97,11 +135,17 @@ export function VoiceAssistant() {
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
+  const langRef = useRef<Lang>("en");
   const recRef = useRef<any>(null);
   const awakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Warm up voices list (browsers load asynchronously).
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+      window.speechSynthesis.getVoices();
+    }
     const w = window as SRWindow;
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) { setSupported(false); return; }
@@ -112,20 +156,42 @@ export function VoiceAssistant() {
     rec.onresult = (e: any) => {
       let text = "";
       for (let i = e.resultIndex; i < e.results.length; i++) text += e.results[i][0].transcript;
-      const lower = text.toLowerCase().trim();
+      const raw = text.trim();
+      const lower = raw.toLowerCase();
       setTranscript(lower);
+      // Auto-detect language from the user's own script so replies match.
+      const detected = detectLang(raw) ?? lang;
+      if (detected !== langRef.current) {
+        langRef.current = detected;
+        setLang(detected);
+      }
       if (!awake && WAKE_WORDS.some((w) => lower.includes(w))) {
         setAwake(true);
         setOpen(true);
-        speak(GREETING[lang], lang);
+        speak(GREETING[detected], detected);
         setLastAction("Awake — listening for a command");
         if (awakeTimer.current) clearTimeout(awakeTimer.current);
         awakeTimer.current = setTimeout(() => setAwake(false), 15000);
         return;
       }
       if (awake && e.results[e.results.length - 1].isFinal) {
+        // Language switch by voice — accept in any of the three languages.
+        const swap = LANG_SWITCH.find((s) => s.keys.some((k) => lower.includes(k.toLowerCase())));
+        if (swap) {
+          langRef.current = swap.lang;
+          setLang(swap.lang);
+          const msg: Record<Lang, string> = {
+            en: `Switched to ${LANG_LABEL[swap.lang]}.`,
+            te: `${LANG_LABEL[swap.lang]}కి మారాను.`,
+            hi: `${LANG_LABEL[swap.lang]} में बदल गया।`,
+          };
+          speak(msg[swap.lang], swap.lang);
+          setLastAction(`Language → ${LANG_LABEL[swap.lang]}`);
+          setAwake(false);
+          return;
+        }
         // "navigate to X" / "take me to X" / "directions to X" → open Google Maps directions
-        const destMatch = lower.match(/(?:navigate|take me|go|directions|guide me)\s+to\s+(.+)$/i);
+        const destMatch = raw.match(/(?:navigate|take me|go|directions|guide me|తీసుకెళ్|తీసుకెళ్లు|ले चलो|ले जाओ)\s*(?:to\s+|కి\s+|కు\s+)?(.+)$/i);
         if (destMatch?.[1]) {
           const dest = destMatch[1].replace(/[.?!,]+$/, "").trim();
           const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=walking`;
@@ -134,7 +200,7 @@ export function VoiceAssistant() {
             te: `${dest} కు నడక మార్గదర్శకాన్ని తెరుస్తున్నాను.`,
             hi: `${dest} तक पैदल दिशा-निर्देश खोल रहा हूँ।`,
           };
-          speak(msgs[lang], lang);
+          speak(msgs[detected], detected);
           setLastAction(`Navigate → ${dest}`);
           window.open(url, "_blank", "noopener");
           setAwake(false);
@@ -142,10 +208,10 @@ export function VoiceAssistant() {
         }
         const match = COMMAND_ROUTES.find((c) => c.keys.some((k) => lower.includes(k)));
         if (match) {
-          const nextLang = match.langOverride ?? lang;
+          const nextLang = match.langOverride ?? detected;
           const msg = match.responses[nextLang];
           speak(msg, nextLang);
-          if (match.langOverride) setLang(match.langOverride);
+          if (match.langOverride) { setLang(match.langOverride); langRef.current = match.langOverride; }
           if (match.route) {
             navigate({
               to: match.route as any,
