@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { loadPeopleRefsAsDataUrls, PEOPLE } from "@/lib/people";
+import { speak as ttsSpeak, cancelSpeech } from "@/lib/tts";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
@@ -44,15 +45,9 @@ const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" }
 const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 
 function speak(text: string, lang: Lang, opts?: { urgent?: boolean; interrupt?: boolean }) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  // Only cancel current speech for urgent/interrupt calls, so routine updates don't chop each other.
-  if (opts?.interrupt || opts?.urgent) window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = LANG_TAG[lang];
-  u.rate = opts?.urgent ? 1.15 : 1;
-  u.pitch = opts?.urgent ? 1.2 : 1;
-  u.volume = 1;
-  window.speechSynthesis.speak(u);
+  // Native voice first; falls back to AI Gateway TTS when te-IN / hi-IN
+  // voices are absent from the browser.
+  void ttsSpeak(text, lang, opts);
 }
 
 // Extract a destination from phrases like "navigate to X" / "take me to X".
