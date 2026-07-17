@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { loadPeopleRefsAsDataUrls, PEOPLE } from "@/lib/people";
-import { speak as ttsSpeak, cancelSpeech } from "@/lib/tts";
+import { speak as ttsSpeak } from "@/lib/tts";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
