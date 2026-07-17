@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
+import { speak as ttsSpeak } from "@/lib/tts";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
@@ -99,32 +100,10 @@ const GREETING: Record<Lang, string> = {
   hi: "नमस्ते। मैं विजन कंपेनियन हूँ। मैं आपकी कैसे मदद कर सकता हूँ?",
 };
 
-// Pick the best available native voice for a language (Google/Microsoft neural).
-function pickVoice(lang: Lang): SpeechSynthesisVoice | undefined {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  const voices = window.speechSynthesis.getVoices();
-  const tag = LANG_TAG[lang].toLowerCase();
-  const short = tag.split("-")[0];
-  const exact = voices.filter((v) => v.lang?.toLowerCase() === tag);
-  const loose = voices.filter((v) => v.lang?.toLowerCase().startsWith(short));
-  const pool = exact.length ? exact : loose;
-  // Prefer Google/Microsoft/Neural voices which sound natural in te-IN and hi-IN.
-  const preferred = pool.find((v) => /google|natural|neural|wavenet/i.test(v.name))
-    || pool.find((v) => /microsoft/i.test(v.name))
-    || pool[0];
-  return preferred;
-}
-
+// Native-first speak with Lovable AI Gateway fallback for te-IN / hi-IN
+// when the browser has no matching voice installed.
 function speak(text: string, lang: Lang = "en") {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = LANG_TAG[lang];
-  const v = pickVoice(lang);
-  if (v) u.voice = v;
-  u.rate = 1;
-  u.pitch = 1;
-  window.speechSynthesis.speak(u);
+  void ttsSpeak(text, lang, { interrupt: true });
 }
 
 export function VoiceAssistant() {
