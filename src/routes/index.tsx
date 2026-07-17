@@ -1,258 +1,238 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
-  ShieldAlert, Languages, Brain, Sparkles, ArrowRight, CheckCircle2,
-  Cpu, Cloud, Navigation, Volume2,
+  ShieldAlert, Languages, Brain, Navigation, Package, Siren,
+  Bus, PhoneCall, Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Vision Companion — Your AI Eyes, Everywhere" },
+      { name: "description", content: "Voice-first AI visual assistant for the visually impaired. Say Hey Vision to detect objects, read text, find money, describe scenes and detect hazards." },
+    ],
+  }),
   component: Index,
 });
 
-const FEATURES = [
-  { icon: Eye, title: "Object Detection", desc: "Real-time YOLO detection with bounding boxes, distance and direction cues." },
-  { icon: Brain, title: "Scene Understanding", desc: "LLaVA-powered scene descriptions of environments, people and hazards." },
-  { icon: Navigation, title: "Indoor Navigation", desc: "ORB-SLAM3 turn-by-turn guidance inside buildings with AR arrows." },
-  { icon: MapPin, title: "Outdoor Navigation", desc: "Google Maps routing with safe-walking, traffic and crossing alerts." },
-  { icon: ScanText, title: "OCR & Documents", desc: "Read books, medicine labels, ID cards and sign boards aloud." },
-  { icon: Coins, title: "Currency Recognition", desc: "Identify Indian notes and calculate totals instantly." },
-  { icon: Palette, title: "Color Detection", desc: "Describe colors of objects and count them accurately." },
-  { icon: Users, title: "Face & Friend Finder", desc: "Recognize saved family and friends with their direction and distance." },
-  { icon: ShieldAlert, title: "Hazard Detection", desc: "Wet floors, stairs, vehicles and fire — instant safety warnings." },
-  { icon: Languages, title: "9 Languages", desc: "English, Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Urdu, Bengali." },
-  { icon: Sparkles, title: "Explainable AI", desc: "Every prediction includes the reasoning and confidence — you know why." },
-  { icon: Volume2, title: "Multilingual TTS", desc: "IndicTTS + Coqui + Google TTS for natural voice guidance." },
-];
+type Lang = "en" | "te" | "hi";
 
-const STEPS = [
-  { n: "01", t: "Launch", d: "Open Vision Companion." },
-  { n: "02", t: "Wake", d: "Say “Hey Vision”." },
-  { n: "03", t: "Command", d: "Speak what you need." },
-  { n: "04", t: "Capture", d: "Camera + mic + GPS." },
-  { n: "05", t: "AI Process", d: "YOLO, LLaVA, Whisper, SLAM." },
-  { n: "06", t: "Explain", d: "AI generates the why." },
-  { n: "07", t: "Speak", d: "Voice guidance in your language." },
-];
+const COPY: Record<Lang, {
+  wake: string; hero: string; sub: string; startCam: string; modes: string;
+  hint: string; camHint: string; sayHey: string;
+}> = {
+  en: {
+    wake: 'Say "Hey Vision" to begin.',
+    hero: "Your AI eyes. Everywhere.",
+    sub: 'Say something like: what is this, read text, find money, describe scene, detect hazard.',
+    startCam: "Start Camera",
+    modes: "AI Modes",
+    hint: "Tap a mode or say a command",
+    camHint: "Allow camera to enable live AI analysis of objects, text, currency and surroundings.",
+    sayHey: 'Say "Hey Vision"',
+  },
+  te: {
+    wake: '"హే విజన్" అని చెప్పి ప్రారంభించండి.',
+    hero: "మీ AI కళ్ళు. ఎక్కడైనా.",
+    sub: "ఇలా చెప్పండి: ఇది ఏమిటి, వచనం చదువు, డబ్బు కనుగొను, దృశ్యం వివరించు, ప్రమాదం గుర్తించు.",
+    startCam: "కెమెరా ప్రారంభించు",
+    modes: "AI మోడ్‌లు",
+    hint: "మోడ్‌ను తాకండి లేదా ఆజ్ఞ చెప్పండి",
+    camHint: "వస్తువులు, వచనం, డబ్బు, పరిసరాల ప్రత్యక్ష AI విశ్లేషణకు కెమెరాను అనుమతించండి.",
+    sayHey: '"హే విజన్" అని చెప్పండి',
+  },
+  hi: {
+    wake: '"हे विज़न" कहकर शुरू करें।',
+    hero: "आपकी AI आँखें। हर जगह।",
+    sub: "ऐसा कहें: यह क्या है, पाठ पढ़ो, पैसे ढूँढो, दृश्य बताओ, खतरा पहचानो।",
+    startCam: "कैमरा शुरू करें",
+    modes: "AI मोड",
+    hint: "मोड चुनें या आवाज़ से आदेश दें",
+    camHint: "वस्तुओं, पाठ, मुद्रा और परिवेश के लाइव AI विश्लेषण के लिए कैमरे की अनुमति दें।",
+    sayHey: '"हे विज़न" कहें',
+  },
+};
 
-const STACK = [
-  { g: "Frontend", i: ["React", "TypeScript", "Tailwind", "Framer Motion"] },
-  { g: "Backend", i: ["FastAPI", "Python", "PostgreSQL", "Redis"] },
-  { g: "AI / ML", i: ["YOLOv11", "LLaVA", "Whisper", "PyTorch"] },
-  { g: "Navigation", i: ["ORB-SLAM3", "Google Maps API", "MediaPipe"] },
-  { g: "Voice", i: ["Coqui TTS", "IndicTTS", "Google TTS"] },
-  { g: "Deploy", i: ["Docker", "Vercel", "Railway"] },
+const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
+
+type ModeDef = { id: string; icon: any; label: Record<Lang, string>; to: string; search?: Record<string, string> };
+
+const MODES: ModeDef[] = [
+  { id: "object",   icon: Package,      label: { en: "Object Detection", te: "వస్తువుల గుర్తింపు", hi: "वस्तु पहचान" },     to: "/camera", search: { mode: "object" } },
+  { id: "scene",    icon: Eye,          label: { en: "Scene Understand", te: "దృశ్య అవగాహన",     hi: "दृश्य समझ" },       to: "/camera", search: { mode: "scene" } },
+  { id: "read",     icon: ScanText,     label: { en: "Read Text",        te: "వచనం చదువు",       hi: "पाठ पढ़ें" },        to: "/camera", search: { mode: "read" } },
+  { id: "currency", icon: Coins,        label: { en: "Currency",         te: "కరెన్సీ",           hi: "मुद्रा" },          to: "/camera", search: { mode: "currency" } },
+  { id: "product",  icon: Package,      label: { en: "Product & Price",  te: "ఉత్పత్తి & ధర",     hi: "उत्पाद और मूल्य" },  to: "/camera", search: { mode: "product" } },
+  { id: "color",    icon: Palette,      label: { en: "Color Detect",     te: "రంగు గుర్తింపు",    hi: "रंग पहचान" },      to: "/camera", search: { mode: "color" } },
+  { id: "face",     icon: Users,        label: { en: "Face Recognize",   te: "ముఖ గుర్తింపు",     hi: "चेहरा पहचान" },     to: "/camera", search: { mode: "face" } },
+  { id: "hazard",   icon: ShieldAlert,  label: { en: "Hazard Alert",     te: "ప్రమాద హెచ్చరిక",   hi: "खतरा चेतावनी" },   to: "/camera", search: { mode: "safety", auto: "1" } },
+  { id: "indoor",   icon: Navigation,   label: { en: "Indoor Nav",       te: "లోపలి మార్గం",     hi: "इनडोर मार्ग" },     to: "/camera", search: { mode: "navigate" } },
+  { id: "outdoor",  icon: MapPin,       label: { en: "Outdoor Nav",      te: "బాహ్య మార్గం",     hi: "बाहरी मार्ग" },     to: "/map" },
+  { id: "sign",     icon: Bus,          label: { en: "Sign & Bus Board", te: "సైన్ & బస్ బోర్డ్",  hi: "साइन और बस बोर्ड" }, to: "/camera", search: { mode: "read" } },
+  { id: "sos",      icon: PhoneCall,    label: { en: "Emergency",        te: "అత్యవసరం",         hi: "आपातकाल" },        to: "/dashboard" },
 ];
 
 function Index() {
+  const [lang, setLang] = useState<Lang>("en");
+  const [camOn, setCamOn] = useState(false);
+  const [camErr, setCamErr] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const t = COPY[lang];
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
+  }, []);
+
+  const startCamera = async () => {
+    setCamErr(null); setStarting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCamOn(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 30);
+    } catch (e: any) {
+      setCamErr(e?.message ?? "Camera permission denied.");
+    } finally {
+      setStarting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen">
-      <Nav />
-      <Hero />
-      <section id="features" className="max-w-6xl mx-auto px-6 py-24">
-        <SectionHead eyebrow="Capabilities" title="Everything a visual assistant should do" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="glass-card rounded-2xl p-6 hover:shadow-glow transition-all group">
-              <div className="size-11 rounded-xl bg-gradient-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <f.icon className="size-5 text-primary-foreground" />
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b-2 border-border">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-12 shrink-0 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow">
+              <Eye className="size-6 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-lg leading-tight truncate">Vision Companion</div>
+              <div className="text-sm text-muted-foreground truncate">{t.wake}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {(["en", "te", "hi"] as Lang[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                aria-pressed={lang === l}
+                aria-label={`Switch language to ${LANG_LABEL[l]}`}
+                className={`min-h-11 px-4 rounded-full text-sm font-semibold border-2 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${lang === l ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow" : "bg-secondary text-foreground border-border hover:bg-secondary/80"}`}
+              >
+                {LANG_LABEL[l]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-8">
+        {/* Hero */}
+        <section aria-labelledby="hero-title" className="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden">
+          <div className="absolute inset-0 -z-10 opacity-70" style={{ background: "var(--gradient-glow)" }} />
+          <h1 id="hero-title" className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.02] mb-4">
+            {t.hero}
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl leading-relaxed mb-6">
+            {t.sub}
+          </p>
+          <div className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary/60 px-4 py-2 text-sm font-medium">
+            <span className="size-2 rounded-full bg-success animate-pulse" />
+            {t.sayHey}
+          </div>
+        </section>
+
+        {/* Camera preview */}
+        <section aria-labelledby="cam-title" className="rounded-3xl border-2 border-border bg-black relative overflow-hidden aspect-video max-h-[560px]">
+          <h2 id="cam-title" className="sr-only">Live camera preview</h2>
+          {camOn ? (
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center p-6 text-center">
+              <div className="flex flex-col items-center gap-4 max-w-md">
+                <Camera className="size-14 text-muted-foreground/70" aria-hidden />
+                <Button
+                  onClick={startCamera}
+                  disabled={starting}
+                  size="lg"
+                  className="min-h-14 px-8 text-lg font-bold rounded-full bg-gradient-primary text-primary-foreground shadow-glow focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  {starting ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}
+                  {t.startCam}
+                </Button>
+                <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+                  {camErr ? camErr : t.camHint}
+                </p>
               </div>
-              <h3 className="font-semibold mb-1.5">{f.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="how" className="max-w-6xl mx-auto px-6 py-24 border-t border-border">
-        <SectionHead eyebrow="Workflow" title="How Vision Companion works" />
-        <div className="grid md:grid-cols-4 lg:grid-cols-7 gap-3 mt-12">
-          {STEPS.map((s) => (
-            <div key={s.n} className="glass-card rounded-xl p-5">
-              <div className="text-xs text-primary-glow font-mono mb-2">{s.n}</div>
-              <div className="font-semibold text-sm mb-1">{s.t}</div>
-              <div className="text-xs text-muted-foreground">{s.d}</div>
+          )}
+          {camOn && (
+            <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full bg-background/80 backdrop-blur px-3 py-1.5 text-xs font-semibold">
+              <span className="size-2 rounded-full bg-destructive animate-pulse" /> LIVE
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="architecture" className="max-w-6xl mx-auto px-6 py-24 border-t border-border">
-        <SectionHead eyebrow="Architecture" title="Modular, explainable, production-ready" />
-        <div className="grid lg:grid-cols-3 gap-4 mt-12">
-          {[
-            { icon: Camera, t: "Client Layer", d: "Camera, microphone, GPS, wake-word engine and voice UI." },
-            { icon: Cloud, t: "FastAPI Backend", d: "REST endpoints for detection, OCR, TTS, STT and history." },
-            { icon: Cpu, t: "AI/ML Modules", d: "YOLOv11, LLaVA, Whisper, ORB-SLAM3, Google Maps." },
-            { icon: Brain, t: "Decision Engine", d: "Context fusion, hazard scoring, route planning, explanations." },
-            { icon: Volume2, t: "TTS Pipeline", d: "IndicTTS / Coqui / Google TTS with per-language voices." },
-            { icon: Sparkles, t: "Explainable AI", d: "Every response ships with why, confidence and evidence." },
-          ].map((b) => (
-            <div key={b.t} className="glass-card rounded-2xl p-6">
-              <b.icon className="size-6 text-primary-glow mb-3" />
-              <div className="font-semibold mb-1">{b.t}</div>
-              <p className="text-sm text-muted-foreground">{b.d}</p>
+          )}
+          {camOn && (
+            <div className="absolute bottom-3 right-3">
+              <Link to="/camera">
+                <Button size="lg" className="min-h-12 rounded-full bg-gradient-primary text-primary-foreground shadow-glow font-bold">
+                  Open Full Camera
+                </Button>
+              </Link>
             </div>
-          ))}
-        </div>
-      </section>
+          )}
+        </section>
 
-      <section id="tech" className="max-w-6xl mx-auto px-6 py-24 border-t border-border">
-        <SectionHead eyebrow="Technology" title="Built on a mature stack" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
-          {STACK.map((s) => (
-            <div key={s.g} className="glass-card rounded-2xl p-6">
-              <div className="text-xs uppercase tracking-wider text-primary-glow mb-3">{s.g}</div>
-              <ul className="space-y-2">
-                {s.i.map((x) => (
-                  <li key={x} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="size-4 text-success" /> {x}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
+        {/* AI Modes */}
+        <section aria-labelledby="modes-title">
+          <div className="flex items-end justify-between mb-4 gap-4 flex-wrap">
+            <h2 id="modes-title" className="text-2xl md:text-3xl font-bold">{t.modes}</h2>
+            <p className="text-sm md:text-base text-muted-foreground">{t.hint}</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            {MODES.map((m) => {
+              const Icon = m.icon;
+              return (
+                <Link
+                  key={m.id}
+                  to={m.to}
+                  search={m.search as any}
+                  className="group glass-card rounded-2xl p-5 md:p-6 min-h-[132px] flex flex-col justify-between border-2 border-border hover:border-primary hover:shadow-glow transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <div className="size-12 rounded-2xl bg-gradient-primary grid place-items-center group-hover:scale-110 transition-transform">
+                    <Icon className="size-6 text-primary-foreground" aria-hidden />
+                  </div>
+                  <div className="mt-4 font-bold text-base md:text-lg leading-tight">
+                    {m.label[lang]}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
 
-      <section className="max-w-4xl mx-auto px-6 py-24 text-center border-t border-border">
-        <h2 className="text-3xl md:text-5xl font-bold mb-4">Try the voice assistant now</h2>
-        <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Click the microphone in the bottom right, then say <span className="text-gradient font-semibold">“Hey Vision”</span>. It responds instantly.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link to="/camera">
-            <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow">
-              Open Live Camera <ArrowRight className="size-4" />
-            </Button>
-          </Link>
-          <Link to="/dashboard">
-            <Button size="lg" variant="secondary">Open Dashboard</Button>
-          </Link>
-        </div>
-      </section>
-
-      <Footer />
+        <footer className="pt-6 pb-24 text-center text-sm text-muted-foreground">
+          <div className="inline-flex items-center gap-2">
+            <Mic className="size-4" aria-hidden /> Voice assistant is always listening — say &ldquo;Hey Vision&rdquo;.
+          </div>
+        </footer>
+      </main>
     </div>
-  );
-}
-
-function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="text-center max-w-2xl mx-auto">
-      <div className="text-xs uppercase tracking-[0.2em] text-primary-glow font-medium mb-3">{eyebrow}</div>
-      <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
-    </div>
-  );
-}
-
-function Nav() {
-  return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/60 border-b border-border">
-      <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
-          <div className="size-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <Eye className="size-4 text-primary-foreground" />
-          </div>
-          Vision Companion
-        </Link>
-        <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-          <a href="#features" className="hover:text-foreground">Features</a>
-          <a href="#how" className="hover:text-foreground">How it works</a>
-          <a href="#architecture" className="hover:text-foreground">Architecture</a>
-          <a href="#tech" className="hover:text-foreground">Technology</a>
-        </div>
-        <Link to="/dashboard">
-          <Button size="sm" className="bg-gradient-primary text-primary-foreground">Launch app</Button>
-        </Link>
-      </nav>
-    </header>
-  );
-}
-
-function Hero() {
-  return (
-    <section className="relative overflow-hidden">
-      <div className="max-w-6xl mx-auto px-6 pt-20 pb-32 text-center relative">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-4 py-1.5 text-xs text-muted-foreground mb-6">
-          <span className="size-1.5 rounded-full bg-success animate-pulse" />
-          Voice assistant online — say “Hey Vision”
-        </div>
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
-          Your eyes, <span className="text-gradient">everywhere.</span>
-          <br />Your assistant, always.
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-          Vision Companion is an explainable AI visual assistant for the visually impaired. It sees the world,
-          explains it in your language, and guides you safely — indoors and outdoors.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link to="/dashboard">
-            <Button size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow h-12 px-6">
-              <Sparkles className="size-4" /> Get Started
-            </Button>
-          </Link>
-          <Button size="lg" variant="outline" className="h-12 px-6" onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })}>
-            <Mic className="size-4" /> Try Voice Demo
-          </Button>
-        </div>
-
-        <div className="mt-20 relative">
-          <div className="absolute inset-0 -z-10 blur-3xl opacity-60" style={{ background: "var(--gradient-glow)" }} />
-          <div className="glass-card rounded-3xl p-8 max-w-3xl mx-auto animate-float">
-            <div className="grid grid-cols-3 gap-4 text-left">
-              {[
-                { i: Camera, l: "Camera", v: "Live" },
-                { i: Mic, l: "Microphone", v: "Listening" },
-                { i: MapPin, l: "GPS", v: "Locked" },
-                { i: Brain, l: "AI Model", v: "YOLOv11" },
-                { i: ShieldAlert, l: "Hazards", v: "None" },
-                { i: Languages, l: "Language", v: "English" },
-              ].map((s) => (
-                <div key={s.l} className="rounded-xl bg-secondary/40 p-3">
-                  <s.i className="size-4 text-primary-glow mb-2" />
-                  <div className="text-[10px] uppercase text-muted-foreground tracking-wider">{s.l}</div>
-                  <div className="text-sm font-semibold">{s.v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-border">
-      <div className="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-4 gap-8 text-sm">
-        <div>
-          <div className="flex items-center gap-2 font-semibold mb-3">
-            <div className="size-7 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <Eye className="size-4 text-primary-foreground" />
-            </div>
-            Vision Companion
-          </div>
-          <p className="text-muted-foreground">Explainable AI visual assistant for the visually impaired.</p>
-        </div>
-        {[
-          { h: "Product", l: ["Features", "How it works", "Architecture", "Technology"] },
-          { h: "Resources", l: ["Documentation", "GitHub", "Research", "Accessibility"] },
-          { h: "Company", l: ["About", "Contact", "Privacy", "Terms"] },
-        ].map((c) => (
-          <div key={c.h}>
-            <div className="font-semibold mb-3">{c.h}</div>
-            <ul className="space-y-2 text-muted-foreground">
-              {c.l.map((x) => <li key={x} className="hover:text-foreground cursor-pointer">{x}</li>)}
-            </ul>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Vision Companion. Built with accessibility first.
-      </div>
-    </footer>
   );
 }
