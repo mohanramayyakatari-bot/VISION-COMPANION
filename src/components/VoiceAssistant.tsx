@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { speak as ttsSpeak, cancelSpeech } from "@/lib/tts";
+import { speak as ttsSpeak } from "@/lib/tts";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
