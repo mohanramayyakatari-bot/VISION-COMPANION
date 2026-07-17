@@ -74,40 +74,6 @@ const MODES: ModeDef[] = [
   { id: "sos",      icon: PhoneCall,    label: { en: "Emergency",        te: "అత్యవసరం",         hi: "आपातकाल" },        to: "/dashboard" },
 ];
 
-const FEATURES = [
-  { icon: Eye, title: "Object Detection", desc: "Real-time YOLO detection with bounding boxes, distance and direction cues." },
-  { icon: Brain, title: "Scene Understanding", desc: "LLaVA-powered scene descriptions of environments, people and hazards." },
-  { icon: Navigation, title: "Indoor Navigation", desc: "ORB-SLAM3 turn-by-turn guidance inside buildings with AR arrows." },
-  { icon: MapPin, title: "Outdoor Navigation", desc: "Google Maps routing with safe-walking, traffic and crossing alerts." },
-  { icon: ScanText, title: "OCR & Documents", desc: "Read books, medicine labels, ID cards and sign boards aloud." },
-  { icon: Coins, title: "Currency Recognition", desc: "Identify Indian notes and calculate totals instantly." },
-  { icon: Palette, title: "Color Detection", desc: "Describe colors of objects and count them accurately." },
-  { icon: Users, title: "Face & Friend Finder", desc: "Recognize saved family and friends with their direction and distance." },
-  { icon: ShieldAlert, title: "Hazard Detection", desc: "Wet floors, stairs, vehicles and fire — instant safety warnings." },
-  { icon: Languages, title: "9 Languages", desc: "English, Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Urdu, Bengali." },
-  { icon: Sparkles, title: "Explainable AI", desc: "Every prediction includes the reasoning and confidence — you know why." },
-  { icon: Volume2, title: "Multilingual TTS", desc: "IndicTTS + Coqui + Google TTS for natural voice guidance." },
-];
-
-const STEPS = [
-  { n: "01", t: "Launch", d: "Open Vision Companion." },
-  { n: "02", t: "Wake", d: "Say “Hey Vision”." },
-  { n: "03", t: "Command", d: "Speak what you need." },
-  { n: "04", t: "Capture", d: "Camera + mic + GPS." },
-  { n: "05", t: "AI Process", d: "YOLO, LLaVA, Whisper, SLAM." },
-  { n: "06", t: "Explain", d: "AI generates the why." },
-  { n: "07", t: "Speak", d: "Voice guidance in your language." },
-];
-
-const STACK = [
-  { g: "Frontend", i: ["React", "TypeScript", "Tailwind", "Framer Motion"] },
-  { g: "Backend", i: ["FastAPI", "Python", "PostgreSQL", "Redis"] },
-  { g: "AI / ML", i: ["YOLOv11", "LLaVA", "Whisper", "PyTorch"] },
-  { g: "Navigation", i: ["ORB-SLAM3", "Google Maps API", "MediaPipe"] },
-  { g: "Voice", i: ["Coqui TTS", "IndicTTS", "Google TTS"] },
-  { g: "Deploy", i: ["Docker", "Vercel", "Railway"] },
-];
-
 function Index() {
   const [lang, setLang] = useState<Lang>("en");
   const [camOn, setCamOn] = useState(false);
