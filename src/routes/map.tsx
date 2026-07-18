@@ -233,7 +233,7 @@ function MapPage() {
         destination: place.address ?? destination, mode: "WALK", language: langRef.current,
       }});
       // Normalise step text (Google returns HTML).
-      const cleanSteps: Step[] = r.steps.map((s) => ({ ...s, text: stripTags(s.text) }));
+      const cleanSteps: Step[] = r.steps.map((s: Step) => ({ ...s, text: stripTags(s.text) }));
       setRoute({ ...r, steps: cleanSteps });
       setStepIdx(0);
       spokenApproach.current = new Set();
