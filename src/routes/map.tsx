@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Loader2, Navigation, MapPin, Volume2 } from "lucide-react";
+import { ArrowLeft, Loader2, Navigation, MapPin, Volume2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { geocodePlace, getDirections } from "@/lib/maps.functions";
+import { speak as ttsSpeak, cancelSpeech } from "@/lib/tts";
 
 type Lang = "en" | "te" | "hi";
 
@@ -26,13 +27,96 @@ export const Route = createFileRoute("/map")({
 const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
 const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 
-function speak(text: string, lang: Lang) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = LANG_TAG[lang];
-  window.speechSynthesis.speak(u);
+function speak(text: string, lang: Lang, urgent = false) {
+  void ttsSpeak(text, lang, { interrupt: urgent, urgent });
 }
+
+// Strip HTML tags returned by Google navigation instructions.
+function stripTags(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// Haversine distance in meters.
+function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+// Closest distance from point P to the polyline (in meters).
+function distToPath(p: { lat: number; lng: number }, path: Array<{ lat: number; lng: number }>): number {
+  if (!path.length) return Infinity;
+  let best = Infinity;
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
+    // Approximate with equirectangular projection near the segment.
+    const latRef = (a.lat + b.lat) / 2;
+    const cos = Math.cos((latRef * Math.PI) / 180);
+    const ax = 0, ay = 0;
+    const bx = (b.lng - a.lng) * cos * 111320;
+    const by = (b.lat - a.lat) * 110540;
+    const px = (p.lng - a.lng) * cos * 111320;
+    const py = (p.lat - a.lat) * 110540;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy || 1;
+    let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const cx = ax + t * dx, cy = ay + t * dy;
+    const d = Math.hypot(px - cx, py - cy);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+function turnPhrase(instructionText: string, lang: Lang): { approaching: string; now: string } {
+  const t = instructionText.toLowerCase();
+  const dir =
+    /\bleft\b/.test(t) ? "left" :
+    /\bright\b/.test(t) ? "right" :
+    /roundabout|u-turn/.test(t) ? "uturn" :
+    /destination|arriv/.test(t) ? "arrive" :
+    "straight";
+  const M: Record<Lang, Record<string, [string, string]>> = {
+    en: {
+      left: ["Left turn approaching.", "Turn left now."],
+      right: ["Right turn approaching.", "Turn right now."],
+      uturn: ["U-turn approaching.", "Make the U-turn now."],
+      straight: ["Keep walking straight.", "Continue straight."],
+      arrive: ["Your destination is just ahead.", "You have arrived."],
+    },
+    te: {
+      left: ["ఎడమవైపు మలుపు వస్తోంది.", "ఇప్పుడు ఎడమకు తిరగండి."],
+      right: ["కుడివైపు మలుపు వస్తోంది.", "ఇప్పుడు కుడికి తిరగండి."],
+      uturn: ["యు-టర్న్ వస్తోంది.", "ఇప్పుడు యు-టర్న్ చేయండి."],
+      straight: ["నేరుగా నడవండి.", "నేరుగా కొనసాగండి."],
+      arrive: ["మీ గమ్యస్థానం సమీపంలో ఉంది.", "మీరు చేరుకున్నారు."],
+    },
+    hi: {
+      left: ["बाईं ओर मोड़ पास आ रहा है.", "अब बाएँ मुड़ें."],
+      right: ["दाईं ओर मोड़ पास आ रहा है.", "अब दाएँ मुड़ें."],
+      uturn: ["यू-टर्न पास आ रहा है.", "अब यू-टर्न लें."],
+      straight: ["सीधे चलते रहें.", "सीधे जारी रखें."],
+      arrive: ["आपका गंतव्य पास है.", "आप पहुँच गए हैं."],
+    },
+  };
+  const [a, n] = M[lang][dir];
+  return { approaching: a, now: n };
+}
+
+const OFF_ROUTE_MSG: Record<Lang, string> = {
+  en: "You have moved off the route. Recalculating a safer path.",
+  te: "మీరు మార్గం నుండి బయటకు వెళ్లారు. కొత్త మార్గాన్ని లెక్కిస్తున్నాను.",
+  hi: "आप रास्ते से हट गए हैं. नया मार्ग बना रहा हूँ.",
+};
+
+const ARRIVED_MSG: Record<Lang, string> = {
+  en: "You have arrived at your destination.",
+  te: "మీరు మీ గమ్యస్థానానికి చేరుకున్నారు.",
+  hi: "आप अपने गंतव्य पर पहुँच गए हैं.",
+};
 
 // Decode a Google encoded polyline into [lat,lng] pairs.
 function decodePolyline(str: string): Array<[number, number]> {
@@ -82,13 +166,23 @@ function MapPage() {
   const [err, setErr] = useState<string | null>(null);
   const [route, setRoute] = useState<{ steps: Step[]; distanceMeters: number; durationSeconds: number } | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
+  const [status, setStatus] = useState<string>("");
   const mapDiv = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const userMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
   const routeLine = useRef<any>(null);
   const watchId = useRef<number | null>(null);
-  const spokenIdx = useRef<number>(-1);
+  const spokenApproach = useRef<Set<number>>(new Set());
+  const spokenNow = useRef<Set<number>>(new Set());
+  const spokenCountdown = useRef<Set<string>>(new Set());
+  const pathLatLng = useRef<Array<{ lat: number; lng: number }>>([]);
+  const destAddr = useRef<string>("");
+  const offRouteSince = useRef<number | null>(null);
+  const arrived = useRef(false);
+  const rerouting = useRef(false);
+  const langRef = useRef<Lang>(search.lang ?? "en");
+  useEffect(() => { langRef.current = lang; }, [lang]);
 
   // Init map + geolocation
   useEffect(() => {
@@ -122,10 +216,11 @@ function MapPage() {
     return () => {
       cancelled = true;
       if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
+      cancelSpeech();
     };
   }, []);
 
-  const startRoute = async (destination: string) => {
+  const startRoute = async (destination: string, silent = false) => {
     setErr(null);
     if (!destination.trim()) return;
     const user = userMarker.current?.getPosition?.();
@@ -135,11 +230,21 @@ function MapPage() {
       const place = await geocode({ data: { query: destination } });
       const r = await directions({ data: {
         originLat: user.lat(), originLng: user.lng(),
-        destination: place.address ?? destination, mode: "WALK", language: lang,
+        destination: place.address ?? destination, mode: "WALK", language: langRef.current,
       }});
-      setRoute(r); setStepIdx(0); spokenIdx.current = -1;
+      // Normalise step text (Google returns HTML).
+      const cleanSteps: Step[] = r.steps.map((s) => ({ ...s, text: stripTags(s.text) }));
+      setRoute({ ...r, steps: cleanSteps });
+      setStepIdx(0);
+      spokenApproach.current = new Set();
+      spokenNow.current = new Set();
+      spokenCountdown.current = new Set();
+      arrived.current = false;
+      offRouteSince.current = null;
+      destAddr.current = place.address ?? destination;
       const google = (window as any).google;
       const path = decodePolyline(r.polyline).map(([lat, lng]) => ({ lat, lng }));
+      pathLatLng.current = path;
       if (routeLine.current) routeLine.current.setMap(null);
       routeLine.current = new google.maps.Polyline({
         map: mapRef.current, path, strokeColor: "#3b82f6", strokeWeight: 5, strokeOpacity: 0.9,
@@ -151,20 +256,41 @@ function MapPage() {
       const bounds = new google.maps.LatLngBounds();
       path.forEach((p) => bounds.extend(p));
       mapRef.current.fitBounds(bounds, 80);
-      const km = (r.distanceMeters / 1000).toFixed(1);
-      const min = Math.round(r.durationSeconds / 60);
-      const intro: Record<Lang, string> = {
-        en: `Route to ${place.name}. ${km} kilometers, about ${min} minutes walking. ${r.steps[0]?.text ?? ""}`,
-        te: `${place.name} కి మార్గం. ${km} కిలోమీటర్లు, సుమారు ${min} నిమిషాల నడక. ${r.steps[0]?.text ?? ""}`,
-        hi: `${place.name} तक का रास्ता। ${km} किलोमीटर, लगभग ${min} मिनट पैदल। ${r.steps[0]?.text ?? ""}`,
-      };
-      speak(intro[lang], lang);
-      spokenIdx.current = 0;
+      if (!silent) {
+        const km = (r.distanceMeters / 1000).toFixed(1);
+        const min = Math.round(r.durationSeconds / 60);
+        const first = cleanSteps[0]?.text ?? "";
+        const intro: Record<Lang, string> = {
+          en: `Route to ${place.name}. ${km} kilometers, about ${min} minutes walking. ${first}`,
+          te: `${place.name} కి మార్గం. ${km} కిలోమీటర్లు, సుమారు ${min} నిమిషాల నడక. ${first}`,
+          hi: `${place.name} तक का रास्ता। ${km} किलोमीटर, लगभग ${min} मिनट पैदल। ${first}`,
+        };
+        speak(intro[langRef.current], langRef.current);
+      }
+      setStatus(`Navigating · ${place.name}`);
     } catch (e: any) {
       setErr(e?.message ?? "Could not compute route.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const stopNav = () => {
+    cancelSpeech();
+    if (routeLine.current) { routeLine.current.setMap(null); routeLine.current = null; }
+    if (destMarker.current) { destMarker.current.setMap(null); destMarker.current = null; }
+    setRoute(null); setStepIdx(0); setStatus("");
+    pathLatLng.current = [];
+    const msg: Record<Lang, string> = {
+      en: "Navigation stopped.", te: "మార్గదర్శకం ఆగింది.", hi: "नेविगेशन बंद हो गया।",
+    };
+    speak(msg[langRef.current], langRef.current);
+  };
+
+  const repeatCurrent = () => {
+    if (!route) return;
+    const s = route.steps[stepIdx];
+    if (s) speak(s.text, langRef.current);
   };
 
   // Auto-run from voice command (?dest=...&auto=1).
@@ -176,28 +302,86 @@ function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.auto, search.dest]);
 
-  // Speak the next step as the user approaches its end point.
+  // Proactive guidance loop: countdown, turn cues, off-route detection, arrival.
   useEffect(() => {
     if (!route) return;
-    const timer = setInterval(() => {
-      const u = userMarker.current?.getPosition?.();
-      if (!u) return;
+    const timer = setInterval(async () => {
+      if (arrived.current) return;
+      const marker = userMarker.current?.getPosition?.();
+      if (!marker) return;
+      const u = { lat: marker.lat(), lng: marker.lng() };
       const step = route.steps[stepIdx];
-      if (!step?.endLat || !step?.endLng) return;
-      const dx = (u.lat() - step.endLat) * 111000;
-      const dy = (u.lng() - step.endLng) * 111000 * Math.cos((u.lat() * Math.PI) / 180);
-      const dist = Math.hypot(dx, dy);
-      if (dist < 20 && stepIdx < route.steps.length - 1) {
-        const next = stepIdx + 1;
-        setStepIdx(next);
-        if (spokenIdx.current !== next) {
-          speak(route.steps[next].text, lang);
-          spokenIdx.current = next;
+      const L = langRef.current;
+
+      // Off-route check
+      if (pathLatLng.current.length) {
+        const off = distToPath(u, pathLatLng.current);
+        if (off > 40) {
+          offRouteSince.current = offRouteSince.current ?? Date.now();
+          if (Date.now() - (offRouteSince.current ?? 0) > 8000 && !rerouting.current && destAddr.current) {
+            rerouting.current = true;
+            speak(OFF_ROUTE_MSG[L], L, true);
+            setStatus("Off route — recalculating…");
+            try { await startRoute(destAddr.current, true); } finally { rerouting.current = false; }
+            return;
+          }
+        } else {
+          offRouteSince.current = null;
         }
       }
-    }, 2000);
+
+      if (!step?.endLat || !step?.endLng) return;
+      const dist = distMeters(u, { lat: step.endLat, lng: step.endLng });
+      const isLast = stepIdx >= route.steps.length - 1;
+      const { approaching, now } = turnPhrase(step.text, L);
+
+      // Countdown at 100m / 50m
+      for (const mark of [100, 50] as const) {
+        const key = `${stepIdx}:${mark}`;
+        if (dist < mark + 5 && dist > mark - 15 && !spokenCountdown.current.has(key)) {
+          spokenCountdown.current.add(key);
+          const msg: Record<Lang, string> = {
+            en: `In ${mark} meters, ${approaching.toLowerCase().replace(/\.$/, "")}.`,
+            te: `${mark} మీటర్లలో, ${approaching}`,
+            hi: `${mark} मीटर में, ${approaching}`,
+          };
+          speak(msg[L], L);
+        }
+      }
+      // Approaching (~25m)
+      if (dist < 30 && dist > 12 && !spokenApproach.current.has(stepIdx)) {
+        spokenApproach.current.add(stepIdx);
+        speak(approaching, L);
+      }
+      // Now (~10m) — advance step
+      if (dist < 12 && !spokenNow.current.has(stepIdx)) {
+        spokenNow.current.add(stepIdx);
+        if (isLast) {
+          arrived.current = true;
+          speak(ARRIVED_MSG[L], L, true);
+          setStatus("Arrived");
+        } else {
+          speak(now, L, true);
+          setStepIdx((i) => i + 1);
+        }
+      }
+    }, 1500);
     return () => clearInterval(timer);
-  }, [route, stepIdx, lang]);
+  }, [route, stepIdx]);
+
+  // Voice-controlled stop: listen for a global "vision:stopNav" event
+  // that the VoiceAssistant can dispatch.
+  useEffect(() => {
+    const handler = () => stopNav();
+    const rep = () => repeatCurrent();
+    window.addEventListener("vision:stopNav", handler);
+    window.addEventListener("vision:repeatNav", rep);
+    return () => {
+      window.removeEventListener("vision:stopNav", handler);
+      window.removeEventListener("vision:repeatNav", rep);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, stepIdx]);
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
@@ -243,12 +427,18 @@ function MapPage() {
               <div>
                 <p className="text-xs text-primary-glow">Step {stepIdx + 1} of {route.steps.length}</p>
                 <p className="text-xs text-muted-foreground">{(route.distanceMeters / 1000).toFixed(1)} km · {Math.round(route.durationSeconds / 60)} min walking</p>
+                {status && <p className="text-[10px] text-primary-glow mt-0.5">{status}</p>}
               </div>
-              <Button size="sm" variant="secondary" onClick={() => speak(route.steps[stepIdx]?.text ?? "", lang)}>
-                <Volume2 className="size-4" /> Repeat
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={repeatCurrent}>
+                  <Volume2 className="size-4" /> Repeat
+                </Button>
+                <Button size="sm" variant="destructive" onClick={stopNav}>
+                  <Square className="size-4" /> Stop
+                </Button>
+              </div>
             </div>
-            <p className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: route.steps[stepIdx]?.text ?? "" }} />
+            <p className="text-sm leading-relaxed">{route.steps[stepIdx]?.text ?? ""}</p>
           </div>
         )}
       </div>
