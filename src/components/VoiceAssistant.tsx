@@ -80,6 +80,8 @@ const COMMAND_ROUTES: Command[] = [
     responses: { en: "Sending emergency alert to your caregiver with your live location.", te: "మీ సంరక్షకునికి అత్యవసర హెచ్చరిక పంపుతున్నాను.", hi: "आपके देखभालकर्ता को आपातकालीन अलर्ट भेज रहा हूँ।" } },
   { keys: ["stop", "quiet", "silence", "mute"], label: "Stop",
     responses: { en: "Stopping.", te: "ఆగుతున్నాను.", hi: "रुक रहा हूँ।" } },
+  { keys: ["stop navigation", "cancel navigation", "end navigation", "మార్గం ఆపు", "नेविगेशन बंद"], label: "Stop Navigation",
+    responses: { en: "Stopping navigation.", te: "మార్గదర్శకాన్ని ఆపుతున్నాను.", hi: "नेविगेशन बंद कर रहा हूँ।" } },
   { keys: ["repeat", "again", "say again"], label: "Repeat",
     responses: { en: "Repeating the last response.", te: "చివరి సమాధానాన్ని మళ్లీ చెబుతున్నాను.", hi: "पिछला उत्तर दोहरा रहा हूँ।" } },
   { keys: ["battery", "status"], label: "Status",
@@ -190,6 +192,11 @@ export function VoiceAssistant() {
           const msg = match.responses[nextLang];
           speak(msg, nextLang);
           if (match.langOverride) { setLang(match.langOverride); langRef.current = match.langOverride; }
+          if (match.label === "Stop Navigation") {
+            window.dispatchEvent(new CustomEvent("vision:stopNav"));
+          } else if (match.label === "Repeat") {
+            window.dispatchEvent(new CustomEvent("vision:repeatNav"));
+          }
           if (match.route) {
             navigate({
               to: match.route as any,
