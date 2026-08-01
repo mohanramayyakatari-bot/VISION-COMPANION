@@ -71,9 +71,17 @@ function CameraPage() {
   const [lang, setLang] = useState<Lang>(search.lang ?? "en");
   const [result, setResult] = useState<string>("");
   const [auto, setAuto] = useState(!!search.auto);
+  const [people, setPeople] = useState(() => listAllPeople());
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpoken = useRef<string>("");
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    const h = () => setPeople(listAllPeople());
+    h();
+    window.addEventListener("vision:peopleChanged", h);
+    return () => window.removeEventListener("vision:peopleChanged", h);
+  }, []);
 
   // Spoken confirmation the moment a mode is launched from a card or voice command.
   useEffect(() => {
