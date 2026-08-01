@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
-import { loadPeopleRefsAsDataUrls, PEOPLE } from "@/lib/people";
+import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
 import { speak as ttsSpeak } from "@/lib/tts";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +74,13 @@ function CameraPage() {
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpoken = useRef<string>("");
   const inFlight = useRef(false);
+
+  // Spoken confirmation the moment a mode is launched from a card or voice command.
+  useEffect(() => {
+    const meta = MODES.find((m) => m.id === (search.mode ?? "scene"));
+    if (meta) speak(meta.hint[lang], lang, { interrupt: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-run once the camera is ready if a mode was passed via URL (voice command).
   useEffect(() => {
@@ -237,8 +244,9 @@ function CameraPage() {
 
         {mode === "face" && (
           <div className="absolute top-3 right-3 glass-card rounded-xl px-3 py-2 text-[10px] max-w-[55%]">
-            <p className="text-primary-glow mb-1">Trusted contacts ({PEOPLE.length})</p>
-            <p className="text-muted-foreground leading-tight">{PEOPLE.map((p) => p.name).join(" · ")}</p>
+            <p className="text-primary-glow mb-1">Trusted contacts ({people.length})</p>
+            <p className="text-muted-foreground leading-tight">{people.map((p) => p.name).join(" · ")}</p>
+            <Link to="/people" search={{ lang } as any} className="text-primary-glow underline mt-1 inline-block">Manage people</Link>
           </div>
         )}
 
