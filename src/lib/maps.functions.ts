@@ -95,3 +95,20 @@ export const getDirections = createServerFn({ method: "POST" })
       steps,
     };
   });
+
+const ReverseInput = z.object({ lat: z.number(), lng: z.number(), language: z.enum(["en", "te", "hi"]).default("en") });
+
+export const reverseGeocode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => ReverseInput.parse(d))
+  .handler(async ({ data }) => {
+    const { lovable, gmaps } = requireKeys();
+    const langMap = { en: "en", te: "te", hi: "hi" } as const;
+    const url = `${GATEWAY}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=${langMap[data.language]}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${lovable}`, "X-Connection-Api-Key": gmaps },
+    });
+    if (!res.ok) await handleMapsError(res);
+    const json = (await res.json()) as any;
+    const address = json.results?.[0]?.formatted_address as string | undefined;
+    return { address: address ?? null };
+  });
