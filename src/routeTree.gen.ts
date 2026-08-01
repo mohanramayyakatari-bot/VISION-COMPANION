@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CameraRouteImport } from './routes/camera'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmergencyRoute = EmergencyRouteImport.update({
+  id: '/emergency',
+  path: '/emergency',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/camera': typeof CameraRoute
   '/dashboard': typeof DashboardRoute
+  '/emergency': typeof EmergencyRoute
   '/map': typeof MapRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/camera': typeof CameraRoute
   '/dashboard': typeof DashboardRoute
+  '/emergency': typeof EmergencyRoute
   '/map': typeof MapRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/camera': typeof CameraRoute
   '/dashboard': typeof DashboardRoute
+  '/emergency': typeof EmergencyRoute
   '/map': typeof MapRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/camera' | '/dashboard' | '/map'
+  fullPaths: '/' | '/camera' | '/dashboard' | '/emergency' | '/map'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/camera' | '/dashboard' | '/map'
-  id: '__root__' | '/' | '/camera' | '/dashboard' | '/map'
+  to: '/' | '/camera' | '/dashboard' | '/emergency' | '/map'
+  id: '__root__' | '/' | '/camera' | '/dashboard' | '/emergency' | '/map'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CameraRoute: typeof CameraRoute
   DashboardRoute: typeof DashboardRoute
+  EmergencyRoute: typeof EmergencyRoute
   MapRoute: typeof MapRoute
 }
 
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/emergency': {
+      id: '/emergency'
+      path: '/emergency'
+      fullPath: '/emergency'
+      preLoaderRoute: typeof EmergencyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CameraRoute: CameraRoute,
   DashboardRoute: DashboardRoute,
+  EmergencyRoute: EmergencyRoute,
   MapRoute: MapRoute,
 }
 export const routeTree = rootRouteImport
