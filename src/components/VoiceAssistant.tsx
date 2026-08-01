@@ -50,7 +50,7 @@ const COMMAND_ROUTES: Command[] = [
     responses: { en: "Analyzing your surroundings now.", te: "మీ చుట్టూ ఉన్న దృశ్యాన్ని విశ్లేషిస్తున్నాను.", hi: "आपके आस-पास का दृश्य समझ रहा हूँ।" } },
   { keys: ["indoor", "navigate indoor", "inside", "room"], label: "Indoor Navigation", route: "/camera", cameraMode: "navigate",
     responses: { en: "Starting indoor navigation. Please choose a destination.", te: "లోపలి మార్గదర్శకాన్ని ప్రారంభిస్తున్నాను.", hi: "इनडोर नेविगेशन शुरू कर रहा हूँ।" } },
-  { keys: ["outdoor", "map", "navigate outdoor", "take me", "directions", "walk"], label: "Outdoor Navigation", route: "/camera", cameraMode: "navigate",
+  { keys: ["outdoor", "map", "navigate outdoor", "directions", "walk"], label: "Outdoor Navigation", route: "/map",
     responses: { en: "Starting outdoor navigation.", te: "బయటి మార్గదర్శకాన్ని ప్రారంభిస్తున్నాను.", hi: "आउटडोर नेविगेशन शुरू कर रहा हूँ।" } },
   { keys: ["read", "ocr", "text", "book", "sign"], label: "Text Reader", route: "/camera", cameraMode: "read",
     responses: { en: "Reading text in front of you.", te: "మీ ముందున్న వచనాన్ని చదువుతున్నాను.", hi: "आपके सामने का पाठ पढ़ रहा हूँ।" } },
@@ -62,21 +62,25 @@ const COMMAND_ROUTES: Command[] = [
     responses: { en: "Scanning for known faces.", te: "పరిచయమున్న ముఖాలను వెతుకుతున్నాను.", hi: "जानी-पहचानी शक्लें ढूँढ रहा हूँ।" } },
   { keys: ["hazard", "danger", "safe", "obstacle", "can i walk"], label: "Hazard Detection", route: "/camera", cameraMode: "hazard",
     responses: { en: "Checking for hazards around you.", te: "మీ చుట్టూ ప్రమాదాలను తనిఖీ చేస్తున్నాను.", hi: "आस-पास खतरों की जाँच कर रहा हूँ।" } },
-  { keys: ["product", "barcode", "medicine", "label"], label: "Product", route: "/camera", cameraMode: "product",
+  { keys: ["product", "barcode", "medicine", "label", "shopping", "price", "mrp", "expiry"], label: "Product", route: "/camera", cameraMode: "product",
     responses: { en: "Scanning the product label.", te: "ఉత్పత్తి లేబుల్‌ను స్కాన్ చేస్తున్నాను.", hi: "प्रोडक्ट लेबल स्कैन कर रहा हूँ।" } },
   { keys: ["document", "scan document", "page"], label: "Document Scan",
     responses: { en: "Scanning the document.", te: "పత్రాన్ని స్కాన్ చేస్తున్నాను.", hi: "दस्तावेज़ स्कैन कर रहा हूँ।" } },
   { keys: ["count"], label: "Count Objects",
     responses: { en: "Counting objects in view.", te: "కనిపిస్తున్న వస్తువులను లెక్కిస్తున్నాను.", hi: "दिख रही वस्तुएँ गिन रहा हूँ।" } },
-  { keys: ["bus", "bus number"], label: "Bus Number",
+  { keys: ["bus", "bus number", "platform", "board", "sign board"], label: "Bus Number", route: "/camera", cameraMode: "read",
     responses: { en: "Reading the bus route number.", te: "బస్సు నంబర్‌ను చదువుతున్నాను.", hi: "बस नंबर पढ़ रहा हूँ।" } },
   { keys: ["translate"], label: "Translate",
     responses: { en: "Translating the recognized text.", te: "గుర్తించిన వచనాన్ని అనువదిస్తున్నాను.", hi: "पहचाने गए पाठ का अनुवाद कर रहा हूँ।" } },
   { keys: ["remind", "reminder", "medicine at", "alarm"], label: "Reminder",
     responses: { en: "Reminder saved.", te: "గుర్తు చేయవలసినది భద్రపరచబడింది.", hi: "रिमाइंडर सहेजा गया।" } },
-  { keys: ["dashboard", "open dashboard", "home"], label: "Dashboard",
+  { keys: ["add person", "new person", "manage people", "update face", "change face", "replace photo", "rename", "delete person", "search person", "face manager"], label: "Face Manager", route: "/people",
+    responses: { en: "Opening the face manager. You can add, update, rename or delete people.", te: "ముఖ నిర్వహణను తెరుస్తున్నాను. వ్యక్తులను జోడించవచ్చు, మార్చవచ్చు, తొలగించవచ్చు.", hi: "फेस मैनेजर खोल रहा हूँ। आप लोग जोड़, बदल या हटा सकते हैं।" } },
+  { keys: ["emergency contact", "add contact", "contacts"], label: "Emergency Contacts", route: "/emergency",
+    responses: { en: "Opening emergency contacts.", te: "అత్యవసర పరిచయాలను తెరుస్తున్నాను.", hi: "आपातकालीन संपर्क खोल रहा हूँ।" } },
+  { keys: ["dashboard", "open dashboard", "home"], label: "Dashboard", route: "/dashboard",
     responses: { en: "Opening the dashboard.", te: "డాష్‌బోర్డును తెరుస్తున్నాను.", hi: "डैशबोर्ड खोल रहा हूँ।" } },
-  { keys: ["emergency", "sos", "help me", "call for help"], label: "Emergency",
+  { keys: ["emergency", "sos", "help me", "call for help", "अत्यावश्यक", "अत्यवसरं"], label: "Emergency", route: "/emergency",
     responses: { en: "Sending emergency alert to your caregiver with your live location.", te: "మీ సంరక్షకునికి అత్యవసర హెచ్చరిక పంపుతున్నాను.", hi: "आपके देखभालकर्ता को आपातकालीन अलर्ट भेज रहा हूँ।" } },
   { keys: ["stop", "quiet", "silence", "mute"], label: "Stop",
     responses: { en: "Stopping.", te: "ఆగుతున్నాను.", hi: "रुक रहा हूँ।" } },
@@ -198,11 +202,14 @@ export function VoiceAssistant() {
             window.dispatchEvent(new CustomEvent("vision:repeatNav"));
           }
           if (match.route) {
+            const autoModes = new Set(["object", "scene", "face", "navigate", "safety"]);
             navigate({
               to: match.route as any,
               search: match.cameraMode
-                ? ({ mode: match.cameraMode, lang: nextLang } as any)
-                : ({ lang: nextLang } as any),
+                ? ({ mode: match.cameraMode, lang: nextLang, auto: autoModes.has(match.cameraMode) ? "1" : undefined } as any)
+                : match.label === "Emergency"
+                  ? ({ lang: nextLang, auto: "1" } as any)
+                  : ({ lang: nextLang } as any),
             }).catch(() => {});
           }
           setLastAction(`${match.label} — ${msg}`);
