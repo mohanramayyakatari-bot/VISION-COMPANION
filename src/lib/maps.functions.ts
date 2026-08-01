@@ -95,3 +95,60 @@ export const getDirections = createServerFn({ method: "POST" })
       steps,
     };
   });
+
+const ReverseInput = z.object({ lat: z.number(), lng: z.number(), language: z.enum(["en", "te", "hi"]).default("en") });
+
+export const reverseGeocode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => ReverseInput.parse(d))
+  .handler(async ({ data }) => {
+    const { lovable, gmaps } = requireKeys();
+    const langMap = { en: "en", te: "te", hi: "hi" } as const;
+    const url = `${GATEWAY}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=${langMap[data.language]}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${lovable}`, "X-Connection-Api-Key": gmaps },
+    });
+    if (!res.ok) await handleMapsError(res);
+    const json = (await res.json()) as any;
+    const address = json.results?.[0]?.formatted_address as string | undefined;
+    return { address: address ?? null };
+  });
+
+const _unusedDirections = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => DirectionsInput.parse(d))
+  .handler(async ({ data }) => {
+    const { lovable, gmaps } = requireKeys();
+    const langMap = { en: "en-US", te: "te-IN", hi: "hi-IN" } as const;
+    const res = await fetch(`${GATEWAY}/routes/directions/v2:computeRoutes`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovable}`,
+        "X-Connection-Api-Key": gmaps,
+        "Content-Type": "application/json",
+        "X-Goog-FieldMask":
+          "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters,routes.legs.steps.polyline.encodedPolyline,routes.legs.steps.startLocation,routes.legs.steps.endLocation",
+      },
+      body: JSON.stringify({
+        origin: { location: { latLng: { latitude: data.originLat, longitude: data.originLng } } },
+        destination: { address: data.destination },
+        travelMode: data.mode,
+        languageCode: langMap[data.language],
+        units: "METRIC",
+      }),
+    });
+    if (!res.ok) await handleMapsError(res);
+    const json = (await res.json()) as any;
+    const route = json.routes?.[0];
+    if (!route) throw new Error("No route found.");
+    const steps = (route.legs?.[0]?.steps ?? []).map((s: any) => ({
+      text: s.navigationInstruction?.instructions ?? "",
+      distanceMeters: s.distanceMeters ?? 0,
+      endLat: s.endLocation?.latLng?.latitude,
+      endLng: s.endLocation?.latLng?.longitude,
+    })).filter((s: any) => s.text);
+    return {
+      polyline: route.polyline?.encodedPolyline as string,
+      distanceMeters: route.distanceMeters as number,
+      durationSeconds: Number(String(route.duration ?? "0s").replace("s", "")),
+      steps,
+    };
+  });
