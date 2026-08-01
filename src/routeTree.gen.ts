@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PeopleRouteImport } from './routes/people'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CameraRouteImport } from './routes/camera'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PeopleRoute = PeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/emergency': typeof EmergencyRoute
   '/map': typeof MapRoute
+  '/people': typeof PeopleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/emergency': typeof EmergencyRoute
   '/map': typeof MapRoute
+  '/people': typeof PeopleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,21 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/emergency': typeof EmergencyRoute
   '/map': typeof MapRoute
+  '/people': typeof PeopleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/camera' | '/dashboard' | '/emergency' | '/map'
+  fullPaths: '/' | '/camera' | '/dashboard' | '/emergency' | '/map' | '/people'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/camera' | '/dashboard' | '/emergency' | '/map'
-  id: '__root__' | '/' | '/camera' | '/dashboard' | '/emergency' | '/map'
+  to: '/' | '/camera' | '/dashboard' | '/emergency' | '/map' | '/people'
+  id:
+    | '__root__'
+    | '/'
+    | '/camera'
+    | '/dashboard'
+    | '/emergency'
+    | '/map'
+    | '/people'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,10 +93,18 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EmergencyRoute: typeof EmergencyRoute
   MapRoute: typeof MapRoute
+  PeopleRoute: typeof PeopleRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/people': {
+      id: '/people'
+      path: '/people'
+      fullPath: '/people'
+      preLoaderRoute: typeof PeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/map': {
       id: '/map'
       path: '/map'
@@ -125,6 +149,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EmergencyRoute: EmergencyRoute,
   MapRoute: MapRoute,
+  PeopleRoute: PeopleRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

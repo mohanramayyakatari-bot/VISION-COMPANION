@@ -60,18 +60,19 @@ const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగ�
 type ModeDef = { id: string; icon: any; label: Record<Lang, string>; to: string; search?: Record<string, string> };
 
 const MODES: ModeDef[] = [
-  { id: "object",   icon: Package,      label: { en: "Object Detection", te: "వస్తువుల గుర్తింపు", hi: "वस्तु पहचान" },     to: "/camera", search: { mode: "object" } },
-  { id: "scene",    icon: Eye,          label: { en: "Scene Understand", te: "దృశ్య అవగాహన",     hi: "दृश्य समझ" },       to: "/camera", search: { mode: "scene" } },
+  { id: "object",   icon: Package,      label: { en: "Object Detection", te: "వస్తువుల గుర్తింపు", hi: "वस्तु पहचान" },     to: "/camera", search: { mode: "object", auto: "1" } },
+  { id: "scene",    icon: Eye,          label: { en: "Scene Understand", te: "దృశ్య అవగాహన",     hi: "दृश्य समझ" },       to: "/camera", search: { mode: "scene", auto: "1" } },
   { id: "read",     icon: ScanText,     label: { en: "Read Text",        te: "వచనం చదువు",       hi: "पाठ पढ़ें" },        to: "/camera", search: { mode: "read" } },
   { id: "currency", icon: Coins,        label: { en: "Currency",         te: "కరెన్సీ",           hi: "मुद्रा" },          to: "/camera", search: { mode: "currency" } },
   { id: "product",  icon: Package,      label: { en: "Product & Price",  te: "ఉత్పత్తి & ధర",     hi: "उत्पाद और मूल्य" },  to: "/camera", search: { mode: "product" } },
   { id: "color",    icon: Palette,      label: { en: "Color Detect",     te: "రంగు గుర్తింపు",    hi: "रंग पहचान" },      to: "/camera", search: { mode: "color" } },
-  { id: "face",     icon: Users,        label: { en: "Face Recognize",   te: "ముఖ గుర్తింపు",     hi: "चेहरा पहचान" },     to: "/camera", search: { mode: "face" } },
+  { id: "face",     icon: Users,        label: { en: "Face Recognize",   te: "ముఖ గుర్తింపు",     hi: "चेहरा पहचान" },     to: "/camera", search: { mode: "face", auto: "1" } },
   { id: "hazard",   icon: ShieldAlert,  label: { en: "Hazard Alert",     te: "ప్రమాద హెచ్చరిక",   hi: "खतरा चेतावनी" },   to: "/camera", search: { mode: "safety", auto: "1" } },
-  { id: "indoor",   icon: Navigation,   label: { en: "Indoor Nav",       te: "లోపలి మార్గం",     hi: "इनडोर मार्ग" },     to: "/camera", search: { mode: "navigate" } },
+  { id: "indoor",   icon: Navigation,   label: { en: "Indoor Nav",       te: "లోపలి మార్గం",     hi: "इनडोर मार्ग" },     to: "/camera", search: { mode: "navigate", auto: "1" } },
   { id: "outdoor",  icon: MapPin,       label: { en: "Outdoor Nav",      te: "బాహ్య మార్గం",     hi: "बाहरी मार्ग" },     to: "/map" },
   { id: "sign",     icon: Bus,          label: { en: "Sign & Bus Board", te: "సైన్ & బస్ బోర్డ్",  hi: "साइन और बस बोर्ड" }, to: "/camera", search: { mode: "read" } },
-  { id: "sos",      icon: PhoneCall,    label: { en: "Emergency",        te: "అత్యవసరం",         hi: "आपातकाल" },        to: "/dashboard" },
+  { id: "people",   icon: Users,        label: { en: "Manage People",    te: "వ్యక్తుల నిర్వహణ",  hi: "लोग प्रबंधित करें" }, to: "/people" },
+  { id: "sos",      icon: PhoneCall,    label: { en: "Emergency",        te: "అత్యవసరం",         hi: "आपातकाल" },        to: "/emergency" },
 ];
 
 function Index() {
@@ -212,7 +213,7 @@ function Index() {
                 <Link
                   key={m.id}
                   to={m.to}
-                  search={m.search as any}
+                  search={{ ...(m.search ?? {}), lang } as any}
                   className="group glass-card rounded-2xl p-5 md:p-6 min-h-[132px] flex flex-col justify-between border-2 border-border hover:border-primary hover:shadow-glow transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <div className="size-12 rounded-2xl bg-gradient-primary grid place-items-center group-hover:scale-110 transition-transform">
