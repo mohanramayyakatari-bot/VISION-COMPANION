@@ -19,7 +19,7 @@ type Lang = "en" | "te" | "hi";
 export const Route = createFileRoute("/emergency")({
   validateSearch: (s: Record<string, unknown>) => ({
     lang: typeof s.lang === "string" ? (s.lang as Lang) : undefined,
-    auto: s.auto === "1" || s.auto === true,
+    auto: s.auto === "1" || s.auto === 1 || s.auto === true || s.auto === "true",
   }),
   head: () => ({
     meta: [

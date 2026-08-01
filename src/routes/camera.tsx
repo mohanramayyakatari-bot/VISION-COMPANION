@@ -15,7 +15,7 @@ export const Route = createFileRoute("/camera")({
   validateSearch: (s: Record<string, unknown>) => ({
     mode: typeof s.mode === "string" ? (s.mode as Mode) : undefined,
     lang: typeof s.lang === "string" ? (s.lang as Lang) : undefined,
-    auto: s.auto === "1" || s.auto === true,
+    auto: s.auto === "1" || s.auto === 1 || s.auto === true || s.auto === "true",
   }),
   head: () => ({
     meta: [
