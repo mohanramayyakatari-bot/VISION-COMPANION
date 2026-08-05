@@ -105,7 +105,7 @@ function CameraPage() {
   // Spoken confirmation the moment a mode is launched from a card or voice command.
   useEffect(() => {
     const meta = MODES.find((m) => m.id === (search.mode ?? "scene"));
-    if (meta) speak(meta.hint[lang], lang, { interrupt: true });
+    if (meta) speak(meta.hint[lang], lang, "general", true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -143,7 +143,7 @@ function CameraPage() {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       if (autoTimer.current) clearTimeout(autoTimer.current);
-      window.speechSynthesis?.cancel();
+      stopSpeaking();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing]);
@@ -181,19 +181,19 @@ function CameraPage() {
         if (!clean) return;
         if (isHazard) {
           lastSpoken.current = "";
-          speak(clean, lang, { urgent: true });
+          speak(clean, lang, "hazard", true);
         } else if (clean !== lastSpoken.current) {
           lastSpoken.current = clean;
-          speak(clean, lang);
+          speak(clean, lang, "scene");
         }
       } else if (text && text !== lastSpoken.current) {
         lastSpoken.current = text;
-        speak(text, lang, { interrupt: !auto });
+        speak(text, lang, MODE_PRIORITY[m] ?? "general", !auto);
       }
     } catch (e: any) {
       const msg = e?.message ?? "Something went wrong.";
       setErr(msg);
-      speak(msg, lang, { interrupt: true });
+      speak(msg, lang, "general", true);
     } finally {
       inFlight.current = false;
       setBusy(false);
