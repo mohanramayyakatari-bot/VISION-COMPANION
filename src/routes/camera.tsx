@@ -215,6 +215,89 @@ function CameraPage() {
     });
   };
 
+  // ---- Background face recognition -------------------------------------
+  // Runs alongside every other camera mode on the SAME video stream, so a
+  // known person is announced even while reading text, navigating, etc.
+  const faceBgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const faceBgBusy = useRef(false);
+  const lastFaceSpoken = useRef<{ text: string; at: number }>({ text: "", at: 0 });
+
+  useEffect(() => {
+    if (!ready || mode === "face" || !FACE_BG_MODES.has(mode) || people.length === 0) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (!faceBgBusy.current && !inFlight.current) {
+        faceBgBusy.current = true;
+        try {
+          const img = captureBase64();
+          if (img) {
+            const refs = await loadPeopleRefsAsDataUrls();
+            const { text } = await analyze({
+              data: { imageBase64: img, mode: "face", language: lang, peopleRefs: refs },
+            });
+            const clean = (text ?? "").trim();
+            const hasKnown = people.some((p) => clean.toLowerCase().includes(p.name.toLowerCase()));
+            const now = Date.now();
+            // Only speak known people in the background; stay quiet otherwise
+            // so we never talk over the active mode without reason.
+            if (!cancelled && hasKnown && clean !== lastFaceSpoken.current.text) {
+              lastFaceSpoken.current = { text: clean, at: now };
+              speak(clean, lang, "face");
+            }
+          }
+        } catch {
+          /* background recognition must never disrupt the active mode */
+        } finally {
+          faceBgBusy.current = false;
+        }
+      }
+      if (!cancelled) faceBgTimer.current = setTimeout(tick, 6000);
+    };
+
+    faceBgTimer.current = setTimeout(tick, 2500);
+    return () => {
+      cancelled = true;
+      if (faceBgTimer.current) clearTimeout(faceBgTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, mode, lang, people.length]);
+
+  // ---- Voice-driven mode switching (no remount, camera keeps running) ----
+  useEffect(() => {
+    const onSetMode = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { mode?: Mode; lang?: Lang; auto?: boolean };
+      if (detail?.lang) setLang(detail.lang);
+      if (!detail?.mode) return;
+      setMode(detail.mode);
+      lastSpoken.current = "";
+      if (typeof detail.auto === "boolean") setAuto(detail.auto);
+      setTimeout(() => run(detail.mode as Mode), 150);
+    };
+    const onStop = () => {
+      setAuto(false);
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      stopSpeaking();
+    };
+    window.addEventListener("vision:setMode", onSetMode);
+    window.addEventListener("vision:stopSpeech", onStop);
+    return () => {
+      window.removeEventListener("vision:setMode", onSetMode);
+      window.removeEventListener("vision:stopSpeech", onStop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
+  const _unusedToggleAuto = () => {
+    setAuto((a) => {
+      const next = !a;
+      if (!next && autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+      if (next) setTimeout(() => run(mode), 100);
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
