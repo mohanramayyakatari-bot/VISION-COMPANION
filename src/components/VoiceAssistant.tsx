@@ -159,11 +159,17 @@ export function VoiceAssistant() {
       if (!awake && WAKE_WORDS.some((w) => lower.includes(w))) {
         setAwake(true);
         setOpen(true);
-        speak(GREETING[detected], detected);
+        speak(LISTENING_PROMPT[detected], detected);
         setLastAction("Awake — listening for a command");
         if (awakeTimer.current) clearTimeout(awakeTimer.current);
-        awakeTimer.current = setTimeout(() => setAwake(false), 15000);
+        // Stay awake until a command completes; only a long silence ends it.
+        awakeTimer.current = setTimeout(() => setAwake(false), 45000);
         return;
+      }
+      // Keep the session alive while the user is still speaking.
+      if (awake && awakeTimer.current) {
+        clearTimeout(awakeTimer.current);
+        awakeTimer.current = setTimeout(() => setAwake(false), 45000);
       }
       if (awake && e.results[e.results.length - 1].isFinal) {
         // Language switch by voice — accept in any of the three languages.
@@ -196,11 +202,17 @@ export function VoiceAssistant() {
           setAwake(false);
           return;
         }
+        if (/(stop|quiet|silence|mute|ఆపు|चुप|बंद करो)/i.test(lower)) {
+          stopSpeaking();
+          window.dispatchEvent(new CustomEvent("vision:stopSpeech"));
+          setLastAction("Stopped speaking");
+          return;
+        }
         const match = COMMAND_ROUTES.find((c) => c.keys.some((k) => lower.includes(k)));
         if (match) {
           const nextLang = match.langOverride ?? detected;
           const msg = match.responses[nextLang];
-          speak(msg, nextLang);
+          speak(msg, nextLang, match.label === "Emergency" ? "emergency" : "general");
           if (match.langOverride) { setLang(match.langOverride); langRef.current = match.langOverride; }
           if (match.label === "Stop Navigation") {
             window.dispatchEvent(new CustomEvent("vision:stopNav"));
@@ -209,6 +221,15 @@ export function VoiceAssistant() {
           }
           if (match.route) {
             const autoModes = new Set(["object", "scene", "face", "navigate", "safety"]);
+            // Already on the camera page? Switch modes in place so the shared
+            // camera stream and background models are never torn down.
+            if (match.route === "/camera" && window.location.pathname === "/camera") {
+              window.dispatchEvent(new CustomEvent("vision:setMode", {
+                detail: { mode: match.cameraMode ?? "scene", lang: nextLang, auto: autoModes.has(match.cameraMode ?? "") },
+              }));
+              setLastAction(`${match.label} — ${msg}`);
+              return;
+            }
             navigate({
               to: match.route as any,
               search: match.cameraMode
