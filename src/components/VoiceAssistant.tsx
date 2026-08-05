@@ -324,7 +324,7 @@ export function VoiceAssistant() {
             <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, color, face, hazard, and emergency."); }}>
               Help
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => window.speechSynthesis?.cancel()}>Stop</Button>
+            <Button size="sm" variant="secondary" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }}>Stop</Button>
           </div>
         </div>
       )}

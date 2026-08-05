@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { speak as ttsSpeak } from "@/lib/tts";
+import { say } from "@/lib/speech-manager";
 import { reverseGeocode } from "@/lib/maps.functions";
 import {
   addContact, buildAlertMessage, deleteContact, listContacts, moveContact,
@@ -88,7 +88,7 @@ function EmergencyPage() {
   }, []);
 
   useEffect(() => {
-    void ttsSpeak(t.activated, lang, { interrupt: true });
+    say(t.activated, lang, "emergency", { force: true, exclusive: true });
     void locate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -123,13 +123,13 @@ function EmergencyPage() {
     const list = listContacts();
     if (!list.length) {
       setError(t.noContacts);
-      void ttsSpeak(t.noContacts, lang, { interrupt: true });
+      say(t.noContacts, lang, "emergency", { force: true });
       return;
     }
     const where = pos ?? (await locate());
     const body = where ? buildAlertMessage({ ...where, address, lang }) : message;
     if (!body) {
-      void ttsSpeak(t.fail, lang, { urgent: true, interrupt: true });
+      say(t.fail, lang, "emergency", { force: true });
       return;
     }
     setMessage(body);
@@ -146,7 +146,7 @@ function EmergencyPage() {
       await new Promise((r) => setTimeout(r, 600));
     }
     refresh();
-    void ttsSpeak(ok ? t.sent : t.fail, lang, { urgent: !ok, interrupt: true });
+    say(ok ? t.sent : t.fail, lang, "emergency", { force: true });
   };
 
   const shareLocation = async () => {
