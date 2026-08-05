@@ -289,15 +289,6 @@ function CameraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
-  const _unusedToggleAuto = () => {
-    setAuto((a) => {
-      const next = !a;
-      if (!next && autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
-      if (next) setTimeout(() => run(mode), 100);
-      return next;
-    });
-  };
-
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
