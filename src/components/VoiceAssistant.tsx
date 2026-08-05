@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { speak as ttsSpeak } from "@/lib/tts";
+import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
@@ -106,11 +106,17 @@ const GREETING: Record<Lang, string> = {
   hi: "नमस्ते। मैं विजन कंपेनियन हूँ। मैं आपकी कैसे मदद कर सकता हूँ?",
 };
 
-// Native-first speak with Lovable AI Gateway fallback for te-IN / hi-IN
-// when the browser has no matching voice installed.
-function speak(text: string, lang: Lang = "en") {
-  void ttsSpeak(text, lang, { interrupt: true });
+// All assistant speech goes through the central Speech Manager so no two
+// modules can ever talk over each other.
+function speak(text: string, lang: Lang = "en", priority: SpeechPriority = "general") {
+  say(text, lang, priority, { force: true });
 }
+
+const LISTENING_PROMPT: Record<Lang, string> = {
+  en: "I'm listening.",
+  te: "నేను వింటున్నాను.",
+  hi: "मैं सुन रहा हूँ।",
+};
 
 export function VoiceAssistant() {
   const [supported, setSupported] = useState(true);
