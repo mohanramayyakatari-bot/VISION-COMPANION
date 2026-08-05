@@ -83,9 +83,7 @@ const MODES: Mode[] = [
 ];
 
 function speak(text: string) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  say(text, "en", "general", { force: true });
 }
 
 function Dashboard() {
