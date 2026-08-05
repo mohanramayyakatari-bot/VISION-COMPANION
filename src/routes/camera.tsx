@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
-import { speak as ttsSpeak } from "@/lib/tts";
+import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
@@ -44,11 +44,30 @@ const MODES: { id: Mode; label: string; icon: any; hint: Record<Lang, string> }[
 const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
 const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 
-function speak(text: string, lang: Lang, opts?: { urgent?: boolean; interrupt?: boolean }) {
-  // Native voice first; falls back to AI Gateway TTS when te-IN / hi-IN
-  // voices are absent from the browser.
-  void ttsSpeak(text, lang, opts);
+// Everything speaks through the central Speech Manager, which guarantees a
+// single voice at a time and priority-based interruption.
+function speak(text: string, lang: Lang, priority: SpeechPriority = "general", force = false) {
+  say(text, lang, priority, { force });
 }
+
+// Which speech priority a camera mode's own output carries.
+const MODE_PRIORITY: Record<Mode, SpeechPriority> = {
+  safety: "hazard",
+  hazard: "hazard",
+  navigate: "navigation",
+  read: "ocr",
+  product: "shopping",
+  currency: "shopping",
+  face: "face",
+  scene: "scene",
+  object: "scene",
+  color: "general",
+};
+
+// Modes that keep background face recognition running alongside them.
+const FACE_BG_MODES = new Set<Mode>([
+  "safety", "scene", "object", "read", "currency", "color", "hazard", "navigate", "product",
+]);
 
 // Extract a destination from phrases like "navigate to X" / "take me to X".
 function parseDestination(q?: string): string | null {
