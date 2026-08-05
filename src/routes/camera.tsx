@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
-import { speak as ttsSpeak } from "@/lib/tts";
+import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
@@ -44,11 +44,30 @@ const MODES: { id: Mode; label: string; icon: any; hint: Record<Lang, string> }[
 const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
 const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 
-function speak(text: string, lang: Lang, opts?: { urgent?: boolean; interrupt?: boolean }) {
-  // Native voice first; falls back to AI Gateway TTS when te-IN / hi-IN
-  // voices are absent from the browser.
-  void ttsSpeak(text, lang, opts);
+// Everything speaks through the central Speech Manager, which guarantees a
+// single voice at a time and priority-based interruption.
+function speak(text: string, lang: Lang, priority: SpeechPriority = "general", force = false) {
+  say(text, lang, priority, { force });
 }
+
+// Which speech priority a camera mode's own output carries.
+const MODE_PRIORITY: Record<Mode, SpeechPriority> = {
+  safety: "hazard",
+  hazard: "hazard",
+  navigate: "navigation",
+  read: "ocr",
+  product: "shopping",
+  currency: "shopping",
+  face: "face",
+  scene: "scene",
+  object: "scene",
+  color: "general",
+};
+
+// Modes that keep background face recognition running alongside them.
+const FACE_BG_MODES = new Set<Mode>([
+  "safety", "scene", "object", "read", "currency", "color", "hazard", "navigate", "product",
+]);
 
 // Extract a destination from phrases like "navigate to X" / "take me to X".
 function parseDestination(q?: string): string | null {
@@ -86,7 +105,7 @@ function CameraPage() {
   // Spoken confirmation the moment a mode is launched from a card or voice command.
   useEffect(() => {
     const meta = MODES.find((m) => m.id === (search.mode ?? "scene"));
-    if (meta) speak(meta.hint[lang], lang, { interrupt: true });
+    if (meta) speak(meta.hint[lang], lang, "general", true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -124,7 +143,7 @@ function CameraPage() {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       if (autoTimer.current) clearTimeout(autoTimer.current);
-      window.speechSynthesis?.cancel();
+      stopSpeaking();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing]);
@@ -162,19 +181,19 @@ function CameraPage() {
         if (!clean) return;
         if (isHazard) {
           lastSpoken.current = "";
-          speak(clean, lang, { urgent: true });
+          speak(clean, lang, "hazard", true);
         } else if (clean !== lastSpoken.current) {
           lastSpoken.current = clean;
-          speak(clean, lang);
+          speak(clean, lang, "scene");
         }
       } else if (text && text !== lastSpoken.current) {
         lastSpoken.current = text;
-        speak(text, lang, { interrupt: !auto });
+        speak(text, lang, MODE_PRIORITY[m] ?? "general", !auto);
       }
     } catch (e: any) {
       const msg = e?.message ?? "Something went wrong.";
       setErr(msg);
-      speak(msg, lang, { interrupt: true });
+      speak(msg, lang, "general", true);
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -195,6 +214,80 @@ function CameraPage() {
       return next;
     });
   };
+
+  // ---- Background face recognition -------------------------------------
+  // Runs alongside every other camera mode on the SAME video stream, so a
+  // known person is announced even while reading text, navigating, etc.
+  const faceBgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const faceBgBusy = useRef(false);
+  const lastFaceSpoken = useRef<{ text: string; at: number }>({ text: "", at: 0 });
+
+  useEffect(() => {
+    if (!ready || mode === "face" || !FACE_BG_MODES.has(mode) || people.length === 0) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (!faceBgBusy.current && !inFlight.current) {
+        faceBgBusy.current = true;
+        try {
+          const img = captureBase64();
+          if (img) {
+            const refs = await loadPeopleRefsAsDataUrls();
+            const { text } = await analyze({
+              data: { imageBase64: img, mode: "face", language: lang, peopleRefs: refs },
+            });
+            const clean = (text ?? "").trim();
+            const hasKnown = people.some((p) => clean.toLowerCase().includes(p.name.toLowerCase()));
+            const now = Date.now();
+            // Only speak known people in the background; stay quiet otherwise
+            // so we never talk over the active mode without reason.
+            if (!cancelled && hasKnown && clean !== lastFaceSpoken.current.text) {
+              lastFaceSpoken.current = { text: clean, at: now };
+              speak(clean, lang, "face");
+            }
+          }
+        } catch {
+          /* background recognition must never disrupt the active mode */
+        } finally {
+          faceBgBusy.current = false;
+        }
+      }
+      if (!cancelled) faceBgTimer.current = setTimeout(tick, 6000);
+    };
+
+    faceBgTimer.current = setTimeout(tick, 2500);
+    return () => {
+      cancelled = true;
+      if (faceBgTimer.current) clearTimeout(faceBgTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, mode, lang, people.length]);
+
+  // ---- Voice-driven mode switching (no remount, camera keeps running) ----
+  useEffect(() => {
+    const onSetMode = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { mode?: Mode; lang?: Lang; auto?: boolean };
+      if (detail?.lang) setLang(detail.lang);
+      if (!detail?.mode) return;
+      setMode(detail.mode);
+      lastSpoken.current = "";
+      if (typeof detail.auto === "boolean") setAuto(detail.auto);
+      setTimeout(() => run(detail.mode as Mode), 150);
+    };
+    const onStop = () => {
+      setAuto(false);
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      stopSpeaking();
+    };
+    window.addEventListener("vision:setMode", onSetMode);
+    window.addEventListener("vision:stopSpeech", onStop);
+    return () => {
+      window.removeEventListener("vision:setMode", onSetMode);
+      window.removeEventListener("vision:stopSpeech", onStop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">

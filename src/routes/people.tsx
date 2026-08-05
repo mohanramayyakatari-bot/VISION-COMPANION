@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { speak as ttsSpeak } from "@/lib/tts";
+import { say } from "@/lib/speech-manager";
 import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";
@@ -75,7 +75,7 @@ function PeoplePage() {
     } catch (e: any) {
       const msg = "Camera permission is required.";
       setErr(e?.message ?? msg);
-      void ttsSpeak(msg, lang, { interrupt: true });
+      say(msg, lang, "general", { force: true });
     }
   };
 
@@ -88,18 +88,18 @@ function PeoplePage() {
     c.getContext("2d")?.drawImage(v, 0, 0, w, h);
     const url = c.toDataURL("image/jpeg", 0.75);
     setShots((s) => [...s, url]);
-    void ttsSpeak(`Captured ${ANGLES[shots.length] ?? "angle"}.`, lang);
+    say(`Captured ${ANGLES[shots.length] ?? "angle"}.`, lang, "general", { force: true });
   };
 
   const saveShots = () => {
     if (!shots.length) return;
     if (target) {
       updatePerson(target, { addImages: shots });
-      void ttsSpeak("Face updated.", lang, { interrupt: true });
+      say("Face updated.", lang, "general", { force: true });
     } else {
       if (!newName.trim()) { setErr("Enter a name first."); return; }
       addPerson(newName, shots);
-      void ttsSpeak(`${newName} added.`, lang, { interrupt: true });
+      say(`${newName} added.`, lang, "general", { force: true });
       setNewName("");
     }
     setShots([]); setTarget(null); refresh();

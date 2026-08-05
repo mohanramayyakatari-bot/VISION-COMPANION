@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { speak as ttsSpeak } from "@/lib/tts";
+import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
@@ -106,11 +106,17 @@ const GREETING: Record<Lang, string> = {
   hi: "नमस्ते। मैं विजन कंपेनियन हूँ। मैं आपकी कैसे मदद कर सकता हूँ?",
 };
 
-// Native-first speak with Lovable AI Gateway fallback for te-IN / hi-IN
-// when the browser has no matching voice installed.
-function speak(text: string, lang: Lang = "en") {
-  void ttsSpeak(text, lang, { interrupt: true });
+// All assistant speech goes through the central Speech Manager so no two
+// modules can ever talk over each other.
+function speak(text: string, lang: Lang = "en", priority: SpeechPriority = "general") {
+  say(text, lang, priority, { force: true });
 }
+
+const LISTENING_PROMPT: Record<Lang, string> = {
+  en: "I'm listening.",
+  te: "నేను వింటున్నాను.",
+  hi: "मैं सुन रहा हूँ।",
+};
 
 export function VoiceAssistant() {
   const [supported, setSupported] = useState(true);
@@ -153,11 +159,17 @@ export function VoiceAssistant() {
       if (!awake && WAKE_WORDS.some((w) => lower.includes(w))) {
         setAwake(true);
         setOpen(true);
-        speak(GREETING[detected], detected);
+        speak(LISTENING_PROMPT[detected], detected);
         setLastAction("Awake — listening for a command");
         if (awakeTimer.current) clearTimeout(awakeTimer.current);
-        awakeTimer.current = setTimeout(() => setAwake(false), 15000);
+        // Stay awake until a command completes; only a long silence ends it.
+        awakeTimer.current = setTimeout(() => setAwake(false), 45000);
         return;
+      }
+      // Keep the session alive while the user is still speaking.
+      if (awake && awakeTimer.current) {
+        clearTimeout(awakeTimer.current);
+        awakeTimer.current = setTimeout(() => setAwake(false), 45000);
       }
       if (awake && e.results[e.results.length - 1].isFinal) {
         // Language switch by voice — accept in any of the three languages.
@@ -190,11 +202,17 @@ export function VoiceAssistant() {
           setAwake(false);
           return;
         }
+        if (/(stop|quiet|silence|mute|ఆపు|चुप|बंद करो)/i.test(lower)) {
+          stopSpeaking();
+          window.dispatchEvent(new CustomEvent("vision:stopSpeech"));
+          setLastAction("Stopped speaking");
+          return;
+        }
         const match = COMMAND_ROUTES.find((c) => c.keys.some((k) => lower.includes(k)));
         if (match) {
           const nextLang = match.langOverride ?? detected;
           const msg = match.responses[nextLang];
-          speak(msg, nextLang);
+          speak(msg, nextLang, match.label === "Emergency" ? "emergency" : "general");
           if (match.langOverride) { setLang(match.langOverride); langRef.current = match.langOverride; }
           if (match.label === "Stop Navigation") {
             window.dispatchEvent(new CustomEvent("vision:stopNav"));
@@ -203,6 +221,15 @@ export function VoiceAssistant() {
           }
           if (match.route) {
             const autoModes = new Set(["object", "scene", "face", "navigate", "safety"]);
+            // Already on the camera page? Switch modes in place so the shared
+            // camera stream and background models are never torn down.
+            if (match.route === "/camera" && window.location.pathname === "/camera") {
+              window.dispatchEvent(new CustomEvent("vision:setMode", {
+                detail: { mode: match.cameraMode ?? "scene", lang: nextLang, auto: autoModes.has(match.cameraMode ?? "") },
+              }));
+              setLastAction(`${match.label} — ${msg}`);
+              return;
+            }
             navigate({
               to: match.route as any,
               search: match.cameraMode
@@ -297,7 +324,7 @@ export function VoiceAssistant() {
             <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, color, face, hazard, and emergency."); }}>
               Help
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => window.speechSynthesis?.cancel()}>Stop</Button>
+            <Button size="sm" variant="secondary" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }}>Stop</Button>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { say } from "@/lib/speech-manager";
 import { toast } from "sonner";
 import {
   Eye, Camera, Mic, MapPin, Brain, ScanText, Coins, Palette, Users,
@@ -83,9 +84,7 @@ const MODES: Mode[] = [
 ];
 
 function speak(text: string) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  say(text, "en", "general", { force: true });
 }
 
 function Dashboard() {

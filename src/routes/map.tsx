@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2, Navigation, MapPin, Volume2, Square } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { geocodePlace, getDirections } from "@/lib/maps.functions";
-import { speak as ttsSpeak, cancelSpeech } from "@/lib/tts";
+import { say, stopSpeaking } from "@/lib/speech-manager";
 
 type Lang = "en" | "te" | "hi";
 
@@ -28,8 +28,9 @@ const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" }
 const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
 
 function speak(text: string, lang: Lang, urgent = false) {
-  void ttsSpeak(text, lang, { interrupt: urgent, urgent });
+  say(text, lang, urgent ? "hazard" : "navigation", { force: urgent });
 }
+const cancelSpeech = stopSpeaking;
 
 // Strip HTML tags returned by Google navigation instructions.
 function stripTags(html: string): string {

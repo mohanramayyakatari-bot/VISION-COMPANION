@@ -78,8 +78,14 @@ async function playViaGateway(text: string, lang: TTSLang) {
     const el = new Audio(`data:${mime};base64,${audio}`);
     el.volume = 1;
     currentAudio = el;
+    const ended = new Promise<void>((resolve) => {
+      el.onended = () => resolve();
+      el.onerror = () => resolve();
+      el.onpause = () => resolve();
+    });
     await el.play();
     console.log(`[TTS] gateway playback ok (${lang}, ${text.length} chars)`);
+    await ended;
   } catch (err) {
     console.error("[TTS] gateway fallback failed:", err);
   }
@@ -92,6 +98,8 @@ export interface SpeakOptions {
   pitch?: number;
 }
 
+// Resolves when playback has finished (or failed). The Speech Manager relies
+// on this to serialize announcements across modules.
 export async function speak(text: string, lang: TTSLang = "en", opts: SpeakOptions = {}) {
   if (!text || typeof window === "undefined") return;
   const synth = window.speechSynthesis;
@@ -113,11 +121,23 @@ export async function speak(text: string, lang: TTSLang = "en", opts: SpeakOptio
     u.rate = opts.rate ?? (opts.urgent ? 1.15 : 1);
     u.pitch = opts.pitch ?? (opts.urgent ? 1.2 : 1);
     u.volume = 1;
-    u.onerror = (e) => {
-      console.warn("[TTS] native error, falling back to gateway:", e.error);
-      void playViaGateway(text, lang);
-    };
-    synth.speak(u);
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      u.onend = done;
+      u.onerror = (e) => {
+        if (settled) return;
+        settled = true;
+        if (e.error === "interrupted" || e.error === "canceled") return resolve();
+        console.warn("[TTS] native error, falling back to gateway:", e.error);
+        void playViaGateway(text, lang).then(resolve);
+      };
+      synth.speak(u);
+    });
     return;
   }
 
