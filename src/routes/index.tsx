@@ -191,7 +191,7 @@ function Index() {
           )}
           {camOn && (
             <div className="absolute bottom-3 right-3">
-              <Link to="/camera">
+              <Link to="/camera" search={{ mode: undefined, lang, auto: false } as any}>
                 <Button size="lg" className="min-h-12 rounded-full bg-gradient-primary text-primary-foreground shadow-glow font-bold">
                   Open Full Camera
                 </Button>
