@@ -26,7 +26,9 @@ const MODE_PROMPTS: Record<string, string> = {
     "SCENE: <what is directly in front of the user right now> — use this otherwise.\n" +
     "Never add extra sentences. Never repeat prior descriptions. If nothing changed since a person would last look, still describe what is currently there.",
   object:
-    "List the most important objects in this image with their approximate position (left/center/right, near/far). Keep it under 3 short sentences, spoken naturally.",
+    "Detect every distinct, important object in this image. Output ONLY machine-readable lines, one per object, in exactly this format:\n" +
+    "name|left OR center OR right|approximate distance in metres as a number\n" +
+    "Use at most 8 lines, nearest first. Use a single common noun for the name (person, chair, car, motorcycle, dog, table, door, stairs). No headings, no numbering, no extra words. If nothing is visible output: none|center|0",
   read:
     "Read aloud ALL the visible text in this image, exactly, in reading order. If there is no text, say 'I don't see any text.' Do not add commentary.",
   currency:
@@ -38,7 +40,9 @@ const MODE_PROMPTS: Record<string, string> = {
   navigate:
     "Give one short walking instruction based on this image: direction, distance in meters, and any obstacle to avoid.",
   face:
-    "You are given one or more REFERENCE photos of known trusted people (labelled with their name), followed by a LIVE camera photo. For every person visible in the LIVE photo, decide if their face matches one of the reference people. Only announce a name when you are highly confident. State position (left/center/right, approx distance) and what they are doing. If a visible person does not match any reference, call them 'an unknown person'. Never guess identity of unknown people.",
+    "You are given one or more REFERENCE photos of known trusted people (labelled with their name), followed by a LIVE camera photo. For EVERY person visible in the LIVE photo, independently compare their face with each reference person: align the face, judge facial structure, and give an honest match confidence. Output ONLY machine-readable lines, one per visible person, in exactly this format:\n" +
+    "name|left OR center OR right|confidence between 0 and 1\n" +
+    "Use the exact reference name when it matches, otherwise use the literal word unknown. Never inflate confidence: a blurry, partial, distant or side-on face must score below 0.5. Report every person, not just the first. No headings, no extra words. If no person is visible output: none|center|0",
   product:
     "Read the product name, brand, and any dosage or expiry visible on the label in one short sentence.",
   ask: "Answer the user's question about the image briefly and clearly.",

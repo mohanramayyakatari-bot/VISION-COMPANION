@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
 import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
+import {
+  ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent,
+} from "@/lib/object-events";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
@@ -94,6 +97,10 @@ function CameraPage() {
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpoken = useRef<string>("");
   const inFlight = useRef(false);
+  // Shared analysis state: one event engine + one face tracker for the whole
+  // camera session, used by every mode over the SAME video stream.
+  const objEngine = useRef(new ObjectEventEngine());
+  const faceTracker = useRef(new FaceTracker());
 
   useEffect(() => {
     const h = () => setPeople(listAllPeople());
@@ -172,6 +179,35 @@ function CameraPage() {
     try {
       const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
       const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang, peopleRefs } });
+
+      // --- Object mode: event-driven. Only changes are spoken, immediately. ---
+      if (m === "object") {
+        const dets = parseDetections(text);
+        setResult(
+          dets.length
+            ? dets.map((d) => `${d.label} · ${d.position}${d.distance != null ? ` · ~${d.distance}m` : ""}`).join("\n")
+            : text,
+        );
+        const events = objEngine.current.update(dets);
+        for (const ev of events) {
+          const line = describeEvent(ev, lang);
+          if (line) say(line, lang, ev.urgent ? "hazard" : "scene", { force: ev.urgent });
+        }
+        return;
+      }
+
+      // --- Face mode: multi-frame verified identities, one line per person. ---
+      if (m === "face") {
+        const obs = parseFaces(text);
+        setResult(
+          obs.length
+            ? obs.map((o) => `${o.name} · ${o.position} · ${Math.round(o.confidence * 100)}%`).join("\n")
+            : text,
+        );
+        for (const line of faceTracker.current.update(obs, lang)) say(line, lang, "face");
+        return;
+      }
+
       setResult(text);
 
       // Safety mode: interrupt immediately for HAZARD, otherwise low-key describe scene.
@@ -200,7 +236,9 @@ function CameraPage() {
       // Non-blocking: schedule next capture immediately; don't wait for TTS.
       // Safety mode runs as fast as the network allows (~800ms round-trip typical).
       if (auto) {
-        const delay = m === "face" ? 2200 : m === "safety" ? 250 : 1200;
+        // Newest-frame-first: the next capture is scheduled the moment the
+        // previous inference returns, never waiting for speech to finish.
+        const delay = m === "face" ? 1200 : m === "safety" || m === "object" ? 250 : 1200;
         autoTimer.current = setTimeout(() => run(m), delay);
       }
     }
@@ -220,7 +258,6 @@ function CameraPage() {
   // known person is announced even while reading text, navigating, etc.
   const faceBgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const faceBgBusy = useRef(false);
-  const lastFaceSpoken = useRef<{ text: string; at: number }>({ text: "", at: 0 });
 
   useEffect(() => {
     if (!ready || mode === "face" || !FACE_BG_MODES.has(mode) || people.length === 0) return;
@@ -237,14 +274,12 @@ function CameraPage() {
             const { text } = await analyze({
               data: { imageBase64: img, mode: "face", language: lang, peopleRefs: refs },
             });
-            const clean = (text ?? "").trim();
-            const hasKnown = people.some((p) => clean.toLowerCase().includes(p.name.toLowerCase()));
-            const now = Date.now();
-            // Only speak known people in the background; stay quiet otherwise
-            // so we never talk over the active mode without reason.
-            if (!cancelled && hasKnown && clean !== lastFaceSpoken.current.text) {
-              lastFaceSpoken.current = { text: clean, at: now };
-              speak(clean, lang, "face");
+            if (cancelled) return;
+            // Same tracker as the dedicated Face mode: multi-frame verified,
+            // announced once per person, silent while they stay in view.
+            const obs = parseFaces(text).filter((o) => !/^unknown/i.test(o.name));
+            for (const line of faceTracker.current.update(obs, lang)) {
+              say(line, lang, "face");
             }
           }
         } catch {
@@ -253,16 +288,57 @@ function CameraPage() {
           faceBgBusy.current = false;
         }
       }
-      if (!cancelled) faceBgTimer.current = setTimeout(tick, 6000);
+      if (!cancelled) faceBgTimer.current = setTimeout(tick, 3000);
     };
 
-    faceBgTimer.current = setTimeout(tick, 2500);
+    faceBgTimer.current = setTimeout(tick, 1500);
     return () => {
       cancelled = true;
       if (faceBgTimer.current) clearTimeout(faceBgTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, mode, lang, people.length]);
+
+  // ---- Background hazard watch -----------------------------------------
+  // Whenever the camera is live in a non-safety mode, a light safety sweep
+  // runs on the same stream so a suddenly appearing vehicle or obstacle is
+  // announced even while reading text or navigating.
+  const hazardBgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hazardBgBusy = useRef(false);
+
+  useEffect(() => {
+    if (!ready || mode === "safety" || mode === "hazard") return;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (!hazardBgBusy.current) {
+        hazardBgBusy.current = true;
+        try {
+          const img = captureBase64();
+          if (img) {
+            const { text } = await analyze({ data: { imageBase64: img, mode: "safety", language: lang } });
+            if (!cancelled && /^\s*HAZARD\s*:/i.test(text ?? "")) {
+              const clean = text.replace(/^\s*HAZARD\s*:\s*/i, "").trim();
+              if (clean) say(clean, lang, "hazard", { force: true });
+            }
+          }
+        } catch {
+          /* the background watch must never disturb the active mode */
+        } finally {
+          hazardBgBusy.current = false;
+        }
+      }
+      if (!cancelled) hazardBgTimer.current = setTimeout(tick, 2500);
+    };
+
+    hazardBgTimer.current = setTimeout(tick, 2000);
+    return () => {
+      cancelled = true;
+      if (hazardBgTimer.current) clearTimeout(hazardBgTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, mode, lang]);
 
   // ---- Voice-driven mode switching (no remount, camera keeps running) ----
   useEffect(() => {
@@ -272,6 +348,7 @@ function CameraPage() {
       if (!detail?.mode) return;
       setMode(detail.mode);
       lastSpoken.current = "";
+      objEngine.current.reset();
       if (typeof detail.auto === "boolean") setAuto(detail.auto);
       setTimeout(() => run(detail.mode as Mode), 150);
     };
@@ -366,7 +443,7 @@ function CameraPage() {
             return (
               <button
                 key={m.id}
-                onClick={() => { setMode(m.id); lastSpoken.current = ""; run(m.id); }}
+                onClick={() => { setMode(m.id); lastSpoken.current = ""; objEngine.current.reset(); run(m.id); }}
                 disabled={!ready || busy}
                 className={`shrink-0 min-w-[86px] rounded-xl px-3 py-2 flex flex-col items-center gap-1 text-xs transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground hover:bg-secondary/70"} disabled:opacity-50`}
               >
