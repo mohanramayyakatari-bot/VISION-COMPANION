@@ -299,6 +299,47 @@ function CameraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, mode, lang, people.length]);
 
+  // ---- Background hazard watch -----------------------------------------
+  // Whenever the camera is live in a non-safety mode, a light safety sweep
+  // runs on the same stream so a suddenly appearing vehicle or obstacle is
+  // announced even while reading text or navigating.
+  const hazardBgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hazardBgBusy = useRef(false);
+
+  useEffect(() => {
+    if (!ready || mode === "safety" || mode === "hazard") return;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (!hazardBgBusy.current) {
+        hazardBgBusy.current = true;
+        try {
+          const img = captureBase64();
+          if (img) {
+            const { text } = await analyze({ data: { imageBase64: img, mode: "safety", language: lang } });
+            if (!cancelled && /^\s*HAZARD\s*:/i.test(text ?? "")) {
+              const clean = text.replace(/^\s*HAZARD\s*:\s*/i, "").trim();
+              if (clean) say(clean, lang, "hazard", { force: true });
+            }
+          }
+        } catch {
+          /* the background watch must never disturb the active mode */
+        } finally {
+          hazardBgBusy.current = false;
+        }
+      }
+      if (!cancelled) hazardBgTimer.current = setTimeout(tick, 2500);
+    };
+
+    hazardBgTimer.current = setTimeout(tick, 2000);
+    return () => {
+      cancelled = true;
+      if (hazardBgTimer.current) clearTimeout(hazardBgTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, mode, lang]);
+
   // ---- Voice-driven mode switching (no remount, camera keeps running) ----
   useEffect(() => {
     const onSetMode = (e: Event) => {
@@ -307,6 +348,7 @@ function CameraPage() {
       if (!detail?.mode) return;
       setMode(detail.mode);
       lastSpoken.current = "";
+      objEngine.current.reset();
       if (typeof detail.auto === "boolean") setAuto(detail.auto);
       setTimeout(() => run(detail.mode as Mode), 150);
     };
