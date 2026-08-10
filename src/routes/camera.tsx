@@ -97,6 +97,10 @@ function CameraPage() {
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpoken = useRef<string>("");
   const inFlight = useRef(false);
+  // Shared analysis state: one event engine + one face tracker for the whole
+  // camera session, used by every mode over the SAME video stream.
+  const objEngine = useRef(new ObjectEventEngine());
+  const faceTracker = useRef(new FaceTracker());
 
   useEffect(() => {
     const h = () => setPeople(listAllPeople());
@@ -175,6 +179,35 @@ function CameraPage() {
     try {
       const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
       const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang, peopleRefs } });
+
+      // --- Object mode: event-driven. Only changes are spoken, immediately. ---
+      if (m === "object") {
+        const dets = parseDetections(text);
+        setResult(
+          dets.length
+            ? dets.map((d) => `${d.label} · ${d.position}${d.distance != null ? ` · ~${d.distance}m` : ""}`).join("\n")
+            : text,
+        );
+        const events = objEngine.current.update(dets);
+        for (const ev of events) {
+          const line = describeEvent(ev, lang);
+          if (line) say(line, lang, ev.urgent ? "hazard" : "scene", { force: ev.urgent });
+        }
+        return;
+      }
+
+      // --- Face mode: multi-frame verified identities, one line per person. ---
+      if (m === "face") {
+        const obs = parseFaces(text);
+        setResult(
+          obs.length
+            ? obs.map((o) => `${o.name} · ${o.position} · ${Math.round(o.confidence * 100)}%`).join("\n")
+            : text,
+        );
+        for (const line of faceTracker.current.update(obs, lang)) say(line, lang, "face");
+        return;
+      }
+
       setResult(text);
 
       // Safety mode: interrupt immediately for HAZARD, otherwise low-key describe scene.
@@ -203,7 +236,9 @@ function CameraPage() {
       // Non-blocking: schedule next capture immediately; don't wait for TTS.
       // Safety mode runs as fast as the network allows (~800ms round-trip typical).
       if (auto) {
-        const delay = m === "face" ? 2200 : m === "safety" ? 250 : 1200;
+        // Newest-frame-first: the next capture is scheduled the moment the
+        // previous inference returns, never waiting for speech to finish.
+        const delay = m === "face" ? 1200 : m === "safety" || m === "object" ? 250 : 1200;
         autoTimer.current = setTimeout(() => run(m), delay);
       }
     }
