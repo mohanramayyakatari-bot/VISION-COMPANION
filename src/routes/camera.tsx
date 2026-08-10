@@ -258,7 +258,6 @@ function CameraPage() {
   // known person is announced even while reading text, navigating, etc.
   const faceBgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const faceBgBusy = useRef(false);
-  const lastFaceSpoken = useRef<{ text: string; at: number }>({ text: "", at: 0 });
 
   useEffect(() => {
     if (!ready || mode === "face" || !FACE_BG_MODES.has(mode) || people.length === 0) return;
@@ -275,14 +274,12 @@ function CameraPage() {
             const { text } = await analyze({
               data: { imageBase64: img, mode: "face", language: lang, peopleRefs: refs },
             });
-            const clean = (text ?? "").trim();
-            const hasKnown = people.some((p) => clean.toLowerCase().includes(p.name.toLowerCase()));
-            const now = Date.now();
-            // Only speak known people in the background; stay quiet otherwise
-            // so we never talk over the active mode without reason.
-            if (!cancelled && hasKnown && clean !== lastFaceSpoken.current.text) {
-              lastFaceSpoken.current = { text: clean, at: now };
-              speak(clean, lang, "face");
+            if (cancelled) return;
+            // Same tracker as the dedicated Face mode: multi-frame verified,
+            // announced once per person, silent while they stay in view.
+            const obs = parseFaces(text).filter((o) => !/^unknown/i.test(o.name));
+            for (const line of faceTracker.current.update(obs, lang)) {
+              say(line, lang, "face");
             }
           }
         } catch {
@@ -291,10 +288,10 @@ function CameraPage() {
           faceBgBusy.current = false;
         }
       }
-      if (!cancelled) faceBgTimer.current = setTimeout(tick, 6000);
+      if (!cancelled) faceBgTimer.current = setTimeout(tick, 3000);
     };
 
-    faceBgTimer.current = setTimeout(tick, 2500);
+    faceBgTimer.current = setTimeout(tick, 1500);
     return () => {
       cancelled = true;
       if (faceBgTimer.current) clearTimeout(faceBgTimer.current);
