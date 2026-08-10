@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
 import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
+import {
+  ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent,
+} from "@/lib/object-events";
 import { Button } from "@/components/ui/button";
 import {
   Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
