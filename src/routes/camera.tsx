@@ -498,7 +498,7 @@ function CameraPage() {
           {(["en", "te", "hi"] as Lang[]).map((l) => (
             <button
               key={l}
-              onClick={() => setLang(l)}
+              onClick={() => { setLang(l); setGlobalLang(l); documentReader.setLang(l); }}
               className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${lang === l ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
               aria-label={`Switch to ${LANG_LABEL[l]}`}
             >
