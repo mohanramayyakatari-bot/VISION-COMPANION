@@ -129,13 +129,14 @@ export function VoiceAssistant() {
   const [transcript, setTranscript] = useState("");
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState<Lang>("en");
-  const langRef = useRef<Lang>("en");
+  const [lang, setLang] = useState<Lang>(() => getLang());
+  const langRef = useRef<Lang>(getLang());
   const recRef = useRef<any>(null);
   const awakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const off = onLangChange((l) => { setLang(l); langRef.current = l; });
     // Warm up voices list (browsers load asynchronously).
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
@@ -159,6 +160,7 @@ export function VoiceAssistant() {
       if (detected !== langRef.current) {
         langRef.current = detected;
         setLang(detected);
+        setGlobalLang(detected);
       }
       if (!awake && WAKE_WORDS.some((w) => lower.includes(w))) {
         setAwake(true);
@@ -274,7 +276,7 @@ export function VoiceAssistant() {
     };
     rec.onerror = () => {};
     recRef.current = rec;
-    return () => { try { rec.stop(); } catch {} };
+    return () => { off(); try { rec.stop(); } catch {} };
   }, [awake, lang]);
 
   const toggle = () => {
