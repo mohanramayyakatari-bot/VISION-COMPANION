@@ -30,7 +30,9 @@ const MODE_PROMPTS: Record<string, string> = {
     "name|left OR center OR right|approximate distance in metres as a number\n" +
     "Use at most 8 lines, nearest first. Use a single common noun for the name (person, chair, car, motorcycle, dog, table, door, stairs). No headings, no numbering, no extra words. If nothing is visible output: none|center|0",
   read:
-    "Read aloud ALL the visible text in this image, exactly, in reading order. If there is no text, say 'I don't see any text.' Do not add commentary.",
+    "You are performing OCR on a document, book, notice, photocopy or a page shown on a screen.\n" +
+    "FIRST line must be exactly one quality tag: QUALITY: ok | QUALITY: too_far | QUALITY: blurry | QUALITY: tilted | QUALITY: partial. Use 'ok' only when the text is clearly legible.\n" +
+    "AFTER that line, transcribe ALL visible text EXACTLY, in correct human reading order (headings first, then columns left to right, then paragraphs top to bottom). Keep paragraph breaks as blank lines. Do not summarise, translate, comment, or add anything that is not printed. If there is no text at all, output only: QUALITY: ok\\n(no text)",
   currency:
     "Identify every Indian rupee note or coin visible. State each denomination and then the total in words. If none, say 'I don't see any currency.'",
   color:

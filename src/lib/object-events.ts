@@ -184,6 +184,30 @@ export const FACE_THRESHOLDS = { high: 0.78, medium: 0.55 };
 /** Frames of agreement required before a name is spoken. */
 export const FACE_CONFIRMATIONS = 2;
 
+// Relations come from the SAME stored people memory the People Manager uses,
+// so any camera mode can say "Your friend Ram is in front of you."
+let RELATIONS: Record<string, string> = {};
+
+export function setPersonRelations(map: Record<string, string>) {
+  RELATIONS = Object.fromEntries(
+    Object.entries(map).map(([k, v]) => [k.toLowerCase(), v]),
+  );
+}
+
+const REL_WORD: Record<Lang, Record<string, string>> = {
+  en: { friend: "Your friend", family: "Your family member", mother: "Your mother", father: "Your father", brother: "Your brother", sister: "Your sister", neighbour: "Your neighbour", neighbor: "Your neighbour", caregiver: "Your caregiver", doctor: "Your doctor", colleague: "Your colleague" },
+  te: { friend: "మీ స్నేహితుడు", family: "మీ కుటుంబ సభ్యులు", mother: "మీ అమ్మ", father: "మీ నాన్న", brother: "మీ సోదరుడు", sister: "మీ సోదరి", neighbour: "మీ పొరుగువారు", neighbor: "మీ పొరుగువారు", caregiver: "మీ సంరక్షకుడు", doctor: "మీ డాక్టర్", colleague: "మీ సహోద్యోగి" },
+  hi: { friend: "आपका दोस्त", family: "आपके परिवार के सदस्य", mother: "आपकी माँ", father: "आपके पिता", brother: "आपका भाई", sister: "आपकी बहन", neighbour: "आपका पड़ोसी", neighbor: "आपका पड़ोसी", caregiver: "आपका देखभालकर्ता", doctor: "आपके डॉक्टर", colleague: "आपका सहकर्मी" },
+};
+
+/** "Your friend Ram" when a relation is stored, otherwise just "Ram". */
+export function personPhrase(name: string, lang: Lang): string {
+  const rel = RELATIONS[name.toLowerCase()];
+  if (!rel) return name;
+  const word = REL_WORD[lang][rel.trim().toLowerCase()];
+  return word ? `${word} ${name}` : name;
+}
+
 type FaceTrack = { hits: number; misses: number; announced: boolean; position: Detection["position"] };
 
 export class FaceTracker {
@@ -218,13 +242,15 @@ export class FaceTracker {
         t.announced = true;
         const p = POS[lang][o.position];
         if (identity === "unknown") {
-          said.push(lang === "te" ? `తెలియని వ్యక్తి ${p}.` : lang === "hi" ? `अनजान व्यक्ति ${p}।` : `Unknown person ${p}.`);
+          said.push(lang === "te" ? `ఒక వ్యక్తి ${p} ఉన్నారు.` : lang === "hi" ? `एक व्यक्ति ${p} है।` : `A person is ${p}.`);
         } else {
-          said.push(lang === "te" ? `${identity} ${p} ఉన్నారు.` : lang === "hi" ? `${identity} ${p} हैं।` : `${identity} is ${p}.`);
+          const who = personPhrase(identity, lang);
+          said.push(lang === "te" ? `${who} ${p} ఉన్నారు.` : lang === "hi" ? `${who} ${p} हैं।` : `${who} is ${p}.`);
         }
       } else if (t.announced && moved && identity !== "unknown") {
         const p = POS[lang][o.position];
-        said.push(lang === "te" ? `${identity} ఇప్పుడు ${p}.` : lang === "hi" ? `${identity} अब ${p}।` : `${identity} is now ${p}.`);
+        const who = personPhrase(identity, lang);
+        said.push(lang === "te" ? `${who} ఇప్పుడు ${p}.` : lang === "hi" ? `${who} अब ${p}।` : `${who} is now ${p}.`);
       }
     }
 

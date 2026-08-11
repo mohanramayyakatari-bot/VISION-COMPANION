@@ -3,6 +3,7 @@
 // phrasings ("take me outside", "who is around me") all resolve correctly.
 
 import type { VisionMode } from "@/lib/vision-modes";
+import type { Lang } from "@/lib/language";
 
 export type Intent =
   | { type: "MODE"; mode: VisionMode }
@@ -10,6 +11,20 @@ export type Intent =
   | { type: "STOP_NAV" }
   | { type: "REPEAT" }
   | { type: "NAVIGATE_TO"; destination: string }
+  | { type: "BACK" }
+  | { type: "HOME" }
+  | { type: "SETTINGS" }
+  | { type: "HELP" }
+  | { type: "SET_LANG"; lang: Lang }
+  | { type: "CAMERA_ON" }
+  | { type: "CAMERA_OFF" }
+  | { type: "CLOSE_MODE" }
+  | { type: "READ_START" }
+  | { type: "READ_NEXT" }
+  | { type: "READ_PREV" }
+  | { type: "READ_PAUSE" }
+  | { type: "READ_RESUME" }
+  | { type: "READ_STOP" }
   | null;
 
 type Rule = { mode: VisionMode; keys: string[] };
@@ -87,9 +102,50 @@ export function routeCommand(rawTranscript: string): Intent {
   if (!raw) return null;
   const lower = raw.toLowerCase();
 
+  // ---- Language switching (works from any screen, in any language) -------
+  if (/\b(telugu)\b|తెలుగు|तेलुगु/i.test(lower)) return { type: "SET_LANG", lang: "te" };
+  if (/\b(hindi)\b|हिंदी|हिन्दी|హిందీ/i.test(lower)) return { type: "SET_LANG", lang: "hi" };
+  if (/\b(english)\b|इंग्लिश|अंग्रेज़ी|ఇంగ్లీష్|ఆంగ్లం/i.test(lower)) return { type: "SET_LANG", lang: "en" };
+
+  // ---- Reading session controls -----------------------------------------
+  if (/\b(pause reading|pause|hold on|wait)\b|ఆగండి|రుకో|थोड़ा रुको|रोको/i.test(lower)) return { type: "READ_PAUSE" };
+  if (/\b(continue|resume|carry on|keep reading|continue reading|go on)\b|కొనసాగించు|जारी रखो|आगे पढ़ो/i.test(lower)) return { type: "READ_RESUME" };
+  if (/\b(next page|read next|next section|next paragraph|skip)\b|తదుపరి|अगला पेज|अगला भाग/i.test(lower)) return { type: "READ_NEXT" };
+  if (/\b(previous page|previous section|go back a page|read previous|last page)\b|మునుపటి|पिछला पेज|पिछला भाग/i.test(lower)) return { type: "READ_PREV" };
+  if (/\b(stop reading|cancel reading|finish reading)\b|చదవడం ఆపు|पढ़ना बंद/i.test(lower)) return { type: "READ_STOP" };
+  if (/\b(read this|read it|read the document|read the page|read aloud|start reading|read text)\b|ఇది చదువు|यह पढ़ो|पढ़ना शुरू/i.test(lower)) return { type: "READ_START" };
+
   if (/\b(stop navigation|cancel navigation|end navigation)\b|మార్గం ఆపు|नेविगेशन बंद/i.test(lower)) {
     return { type: "STOP_NAV" };
   }
+
+  // ---- Camera power ------------------------------------------------------
+  if (/\b(turn off (the )?camera|close (the )?camera|stop (the )?camera|camera off)\b|కెమెరా ఆపు|कैमरा बंद/i.test(lower)) {
+    return { type: "CAMERA_OFF" };
+  }
+  if (/\b(turn on (the )?camera|open (the )?camera|start (the )?camera|camera on|live camera)\b|కెమెరా ఆన్|कैमरा चालू|कैमरा खोलो/i.test(lower)) {
+    return { type: "CAMERA_ON" };
+  }
+
+  // ---- Closing a mode ----------------------------------------------------
+  if (/\b(close|exit|quit|end|leave)\b.*\b(mode|detection|understanding|recognition|reader|reading|scanner|camera|navigation)\b|\bclose it\b|\bexit\b|మూసివేయి|बंद करो|बाहर निकलो/i.test(lower)) {
+    return { type: "CLOSE_MODE" };
+  }
+
+  // ---- Navigation between screens ---------------------------------------
+  if (/\b(go home|home screen|main screen|take me home|main menu|dashboard home)\b|హోమ్|होम|मुख्य स्क्रीन/i.test(lower)) {
+    return { type: "HOME" };
+  }
+  if (/\b(go back|move back|previous screen|take me back|return|back please|back)\b|వెనక్కి|पीछे|वापस/i.test(lower)) {
+    return { type: "BACK" };
+  }
+  if (/\b(settings|preferences|options|configuration)\b|సెట్టింగ్|सेटिंग/i.test(lower)) {
+    return { type: "SETTINGS" };
+  }
+  if (/\b(what can you do|list commands|available commands|voice commands|how to use|help menu)\b|కమాండ్‌లు|कमांड बताओ/i.test(lower)) {
+    return { type: "HELP" };
+  }
+
   if (/^(stop|quiet|silence|mute|shut up)\b|\bstop talking\b|ఆపు|చుప్|चुप|बंद करो/i.test(lower)) {
     return { type: "STOP" };
   }
