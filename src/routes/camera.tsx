@@ -97,6 +97,34 @@ function CameraPage() {
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpoken = useRef<string>("");
   const inFlight = useRef(false);
+  // One shared throttle for EVERY gateway call made by this page (active loop,
+  // background face watch, background hazard watch). Requests are serialized and
+  // a 429 backs the whole page off instead of surfacing as an error.
+  const gateBusy = useRef(false);
+  const nextAllowedAt = useRef(0);
+  const backoffMs = useRef(0);
+
+  const isRateLimit = (e: unknown) => /rate limit|429/i.test((e as any)?.message ?? "");
+
+  const callAnalyze = async (payload: any) => {
+    if (gateBusy.current) throw new Error("__skip__");
+    const wait = nextAllowedAt.current - Date.now();
+    if (wait > 0) throw new Error("__skip__");
+    gateBusy.current = true;
+    try {
+      const out = await analyze({ data: payload });
+      backoffMs.current = 0;
+      return out;
+    } catch (e) {
+      if (isRateLimit(e)) {
+        backoffMs.current = Math.min(backoffMs.current ? backoffMs.current * 2 : 3000, 30000);
+        nextAllowedAt.current = Date.now() + backoffMs.current;
+      }
+      throw e;
+    } finally {
+      gateBusy.current = false;
+    }
+  };
   // Shared analysis state: one event engine + one face tracker for the whole
   // camera session, used by every mode over the SAME video stream.
   const objEngine = useRef(new ObjectEventEngine());
@@ -178,7 +206,7 @@ function CameraPage() {
     if (!auto) speak(meta.hint[lang], lang);
     try {
       const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
-      const { text } = await analyze({ data: { imageBase64: img, mode: m, language: lang, peopleRefs } });
+      const { text } = await callAnalyze({ imageBase64: img, mode: m, language: lang, peopleRefs });
 
       // --- Object mode: event-driven. Only changes are spoken, immediately. ---
       if (m === "object") {
@@ -228,6 +256,9 @@ function CameraPage() {
       }
     } catch (e: any) {
       const msg = e?.message ?? "Something went wrong.";
+      // Skipped or rate-limited frames are normal in a live loop — stay silent
+      // and let the backoff schedule the next attempt.
+      if (msg === "__skip__" || isRateLimit(e)) return;
       setErr(msg);
       speak(msg, lang, "general", true);
     } finally {
@@ -238,7 +269,8 @@ function CameraPage() {
       if (auto) {
         // Newest-frame-first: the next capture is scheduled the moment the
         // previous inference returns, never waiting for speech to finish.
-        const delay = m === "face" ? 1200 : m === "safety" || m === "object" ? 250 : 1200;
+        const base = m === "face" ? 1500 : m === "safety" || m === "object" ? 900 : 1500;
+        const delay = Math.max(base, nextAllowedAt.current - Date.now());
         autoTimer.current = setTimeout(() => run(m), delay);
       }
     }
@@ -271,8 +303,8 @@ function CameraPage() {
           const img = captureBase64();
           if (img) {
             const refs = await loadPeopleRefsAsDataUrls();
-            const { text } = await analyze({
-              data: { imageBase64: img, mode: "face", language: lang, peopleRefs: refs },
+            const { text } = await callAnalyze({
+              imageBase64: img, mode: "face", language: lang, peopleRefs: refs,
             });
             if (cancelled) return;
             // Same tracker as the dedicated Face mode: multi-frame verified,
@@ -288,7 +320,7 @@ function CameraPage() {
           faceBgBusy.current = false;
         }
       }
-      if (!cancelled) faceBgTimer.current = setTimeout(tick, 3000);
+      if (!cancelled) faceBgTimer.current = setTimeout(tick, Math.max(5000, nextAllowedAt.current - Date.now()));
     };
 
     faceBgTimer.current = setTimeout(tick, 1500);
@@ -312,12 +344,12 @@ function CameraPage() {
 
     const tick = async () => {
       if (cancelled) return;
-      if (!hazardBgBusy.current) {
+      if (!hazardBgBusy.current && !inFlight.current) {
         hazardBgBusy.current = true;
         try {
           const img = captureBase64();
           if (img) {
-            const { text } = await analyze({ data: { imageBase64: img, mode: "safety", language: lang } });
+            const { text } = await callAnalyze({ imageBase64: img, mode: "safety", language: lang });
             if (!cancelled && /^\s*HAZARD\s*:/i.test(text ?? "")) {
               const clean = text.replace(/^\s*HAZARD\s*:\s*/i, "").trim();
               if (clean) say(clean, lang, "hazard", { force: true });
@@ -329,7 +361,7 @@ function CameraPage() {
           hazardBgBusy.current = false;
         }
       }
-      if (!cancelled) hazardBgTimer.current = setTimeout(tick, 2500);
+      if (!cancelled) hazardBgTimer.current = setTimeout(tick, Math.max(4000, nextAllowedAt.current - Date.now()));
     };
 
     hazardBgTimer.current = setTimeout(tick, 2000);
