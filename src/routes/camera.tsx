@@ -425,6 +425,7 @@ function CameraPage() {
       const detail = (e as CustomEvent).detail as { mode?: Mode; lang?: Lang; auto?: boolean };
       if (detail?.lang) setLang(detail.lang);
       if (!detail?.mode) return;
+      documentReader.stop(true);
       setMode(detail.mode);
       lastSpoken.current = "";
       objEngine.current.reset();
@@ -436,14 +437,53 @@ function CameraPage() {
       if (autoTimer.current) clearTimeout(autoTimer.current);
       stopSpeaking();
     };
+    const onCameraPower = (e: Event) => {
+      const on = !!(e as CustomEvent).detail?.on;
+      if (on) {
+        void startCamera(facing);
+        say(lang === "te" ? "కెమెరా ఆన్ అయింది." : lang === "hi" ? "कैमरा चालू है।" : "Camera is on.", lang, "general", { force: true });
+      } else {
+        setAuto(false);
+        if (autoTimer.current) clearTimeout(autoTimer.current);
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        setReady(false);
+        say(lang === "te" ? "కెమెరా ఆపివేయబడింది." : lang === "hi" ? "कैमरा बंद है।" : "Camera is off.", lang, "general", { force: true });
+      }
+    };
+    const onCloseMode = () => {
+      documentReader.stop(true);
+      setAuto(false);
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setReady(false);
+    };
+    const onReadDocument = () => {
+      documentReader.stop(true);
+      setMode("read");
+      setTimeout(() => run("read"), 200);
+    };
+    const onPause = () => pauseSpeaking();
+    const onResume = () => resumeSpeaking();
     window.addEventListener("vision:setMode", onSetMode);
     window.addEventListener("vision:stopSpeech", onStop);
+    window.addEventListener("vision:cameraPower", onCameraPower);
+    window.addEventListener("vision:closeMode", onCloseMode);
+    window.addEventListener("vision:readDocument", onReadDocument);
+    window.addEventListener("vision:pauseSpeech", onPause);
+    window.addEventListener("vision:resumeSpeech", onResume);
     return () => {
       window.removeEventListener("vision:setMode", onSetMode);
       window.removeEventListener("vision:stopSpeech", onStop);
+      window.removeEventListener("vision:cameraPower", onCameraPower);
+      window.removeEventListener("vision:closeMode", onCloseMode);
+      window.removeEventListener("vision:readDocument", onReadDocument);
+      window.removeEventListener("vision:pauseSpeech", onPause);
+      window.removeEventListener("vision:resumeSpeech", onResume);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, [lang, facing]);
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
