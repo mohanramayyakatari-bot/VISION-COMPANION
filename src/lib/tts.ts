@@ -53,6 +53,7 @@ function pickVoice(voices: SpeechSynthesisVoice[], lang: TTSLang): SpeechSynthes
 
 // Single reusable Audio element so we don't stack overlapping playback.
 let currentAudio: HTMLAudioElement | null = null;
+let fallbackResolve: (() => void) | null = null;
 
 function stopFallback() {
   if (currentAudio) {
@@ -61,6 +62,11 @@ function stopFallback() {
       currentAudio.src = "";
     } catch {}
     currentAudio = null;
+  }
+  if (fallbackResolve) {
+    const r = fallbackResolve;
+    fallbackResolve = null;
+    r();
   }
 }
 
@@ -71,6 +77,22 @@ export function cancelSpeech() {
   stopFallback();
 }
 
+/** Pause whatever is currently being spoken (native or gateway audio). */
+export function pauseSpeech() {
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    try { window.speechSynthesis.pause(); } catch {}
+  }
+  if (currentAudio) { try { currentAudio.pause(); } catch {} }
+}
+
+/** Resume speech paused with `pauseSpeech()`. */
+export function resumeSpeech() {
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    try { window.speechSynthesis.resume(); } catch {}
+  }
+  if (currentAudio) { void currentAudio.play().catch(() => {}); }
+}
+
 async function playViaGateway(text: string, lang: TTSLang) {
   try {
     const { audio, mime } = await synthesizeSpeech({ data: { text, language: lang } });
@@ -79,13 +101,14 @@ async function playViaGateway(text: string, lang: TTSLang) {
     el.volume = 1;
     currentAudio = el;
     const ended = new Promise<void>((resolve) => {
+      fallbackResolve = resolve;
       el.onended = () => resolve();
       el.onerror = () => resolve();
-      el.onpause = () => resolve();
     });
     await el.play();
     console.log(`[TTS] gateway playback ok (${lang}, ${text.length} chars)`);
     await ended;
+    fallbackResolve = null;
   } catch (err) {
     console.error("[TTS] gateway fallback failed:", err);
   }

@@ -4,7 +4,7 @@
 // queue, higher-priority speech interrupts immediately and the interrupted
 // message is resumed afterwards when it still matters.
 
-import { speak as ttsSpeak, cancelSpeech, type TTSLang } from "@/lib/tts";
+import { speak as ttsSpeak, cancelSpeech, pauseSpeech, resumeSpeech, type TTSLang } from "@/lib/tts";
 
 export type SpeechPriority =
   | "emergency"
@@ -35,6 +35,7 @@ type Item = {
   lang: TTSLang;
   priority: SpeechPriority;
   seq: number;
+  done?: () => void;
 };
 
 let queue: Item[] = [];
@@ -78,6 +79,7 @@ async function pump() {
     } catch {
       /* never let one failed announcement stall the queue */
     }
+    item.done?.();
     if (myToken !== token) {
       // We were interrupted; the interrupting call owns the queue from here.
       current = null;
@@ -127,10 +129,37 @@ export function say(
   void pump();
 }
 
+/** Same as `say`, but resolves when this utterance finished (or was dropped). */
+export function sayAndWait(
+  text: string,
+  lang: TTSLang = "en",
+  priority: SpeechPriority = "general",
+): Promise<void> {
+  const clean = (text ?? "").trim();
+  if (!clean || typeof window === "undefined") return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; resolve(); } };
+    const item: Item = { text: clean, lang, priority, seq: ++seqCounter, done };
+    insert(item);
+    void pump();
+    // Safety net: never leave a reader loop hanging on a dropped item.
+    setTimeout(done, 5000 + clean.length * 120);
+  });
+}
+
+/** Pause the current utterance without losing the queue. */
+export function pauseSpeaking() { pauseSpeech(); }
+
+/** Resume after `pauseSpeaking()`. */
+export function resumeSpeaking() { resumeSpeech(); }
+
 /** Silence everything and clear the queue. */
 export function stopSpeaking() {
   token++;
+  for (const q of queue) q.done?.();
   queue = [];
+  current?.done?.();
   current = null;
   running = false;
   cancelSpeech();

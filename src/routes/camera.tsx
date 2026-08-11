@@ -3,9 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
-import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
+import { say, stopSpeaking, pauseSpeaking, resumeSpeaking, type SpeechPriority } from "@/lib/speech-manager";
+import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
+import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 import {
-  ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent,
+  ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent, setPersonRelations,
 } from "@/lib/object-events";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,7 +92,7 @@ function CameraPage() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<Mode>(search.mode ?? "scene");
-  const [lang, setLang] = useState<Lang>(search.lang ?? "en");
+  const [lang, setLang] = useState<Lang>(search.lang ?? getLang());
   const [result, setResult] = useState<string>("");
   const [auto, setAuto] = useState(!!search.auto);
   const [people, setPeople] = useState(() => listAllPeople());
@@ -131,10 +133,25 @@ function CameraPage() {
   const faceTracker = useRef(new FaceTracker());
 
   useEffect(() => {
-    const h = () => setPeople(listAllPeople());
+    const h = () => {
+      const all = listAllPeople();
+      setPeople(all);
+      // Share the stored people memory (names + relations) with the shared
+      // face tracker so EVERY camera mode can name them naturally.
+      setPersonRelations(
+        Object.fromEntries(all.filter((p) => p.relation).map((p) => [p.name, p.relation as string])),
+      );
+    };
     h();
     window.addEventListener("vision:peopleChanged", h);
     return () => window.removeEventListener("vision:peopleChanged", h);
+  }, []);
+
+  // Keep the camera in sync with the global (voice-controlled) language.
+  useEffect(() => {
+    if (search.lang) setGlobalLang(search.lang);
+    return onLangChange((l) => { setLang(l); documentReader.setLang(l); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Spoken confirmation the moment a mode is launched from a card or voice command.
@@ -236,6 +253,32 @@ function CameraPage() {
         return;
       }
 
+      // --- Read mode: full document OCR → paced, voice-controlled reading ---
+      if (m === "read") {
+        const lines = (text ?? "").split(/\r?\n/);
+        let quality = "ok";
+        if (/^\s*QUALITY\s*:/i.test(lines[0] ?? "")) {
+          quality = (lines.shift() ?? "").replace(/^\s*QUALITY\s*:\s*/i, "").trim().toLowerCase();
+        }
+        const body = lines.join("\n").replace(/^\(no text\)$/im, "").trim();
+        setResult(body || text);
+        if (quality !== "ok" && QUALITY_HINT[quality]) {
+          say(QUALITY_HINT[quality]![lang], lang, "ocr", { force: true });
+          if (!body) return;
+        }
+        if (!body) {
+          say(
+            lang === "te" ? "వచనం కనిపించడం లేదు. కెమెరాను పేజీపై ఉంచండి."
+              : lang === "hi" ? "कोई पाठ नहीं दिख रहा। कैमरा पेज पर रखें।"
+              : "I don't see any text. Point the camera at the page.",
+            lang, "ocr", { force: true },
+          );
+          return;
+        }
+        void documentReader.start(body, lang);
+        return;
+      }
+
       setResult(text);
 
       // Safety mode: interrupt immediately for HAZARD, otherwise low-key describe scene.
@@ -267,6 +310,9 @@ function CameraPage() {
       // Non-blocking: schedule next capture immediately; don't wait for TTS.
       // Safety mode runs as fast as the network allows (~800ms round-trip typical).
       if (auto) {
+        // A document reading session owns the voice until it finishes or the
+        // user stops it — never re-OCR over the top of it.
+        if (m === "read" && documentReader.isActive) return;
         // Newest-frame-first: the next capture is scheduled the moment the
         // previous inference returns, never waiting for speech to finish.
         const base = m === "face" ? 1500 : m === "safety" || m === "object" ? 900 : 1500;
@@ -292,7 +338,7 @@ function CameraPage() {
   const faceBgBusy = useRef(false);
 
   useEffect(() => {
-    if (!ready || mode === "face" || !FACE_BG_MODES.has(mode) || people.length === 0) return;
+    if (!ready || mode === "face" || !FACE_BG_MODES.has(mode)) return;
     let cancelled = false;
 
     const tick = async () => {
@@ -309,7 +355,8 @@ function CameraPage() {
             if (cancelled) return;
             // Same tracker as the dedicated Face mode: multi-frame verified,
             // announced once per person, silent while they stay in view.
-            const obs = parseFaces(text).filter((o) => !/^unknown/i.test(o.name));
+            // Unknown people are announced too ("A person is in front of you").
+            const obs = parseFaces(text);
             for (const line of faceTracker.current.update(obs, lang)) {
               say(line, lang, "face");
             }
