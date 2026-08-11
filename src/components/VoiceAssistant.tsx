@@ -5,6 +5,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { say, stopSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 import { routeCommand } from "@/lib/voice-router";
 import { openMode, MODE_REGISTRY } from "@/lib/vision-modes";
+import { executeIntent } from "@/lib/command-manager";
+import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
@@ -174,47 +176,20 @@ export function VoiceAssistant() {
         awakeTimer.current = setTimeout(() => setAwake(false), 45000);
       }
       if (awake && e.results[e.results.length - 1].isFinal) {
-        // ---- Centralized VoiceCommandRouter: natural phrasing → real action.
+        // ---- One centralized pipeline: speech → intent → Command Manager →
+        // real application action → spoken confirmation.
         const intent = routeCommand(raw);
         if (intent) {
-          if (intent.type === "STOP") {
-            stopSpeaking();
-            window.dispatchEvent(new CustomEvent("vision:stopSpeech"));
-            setLastAction("Stopped speaking");
-            return;
-          }
-          if (intent.type === "STOP_NAV") {
-            window.dispatchEvent(new CustomEvent("vision:stopNav"));
-            setLastAction("Navigation stopped");
-            setAwake(false);
-            return;
-          }
-          if (intent.type === "REPEAT") {
-            window.dispatchEvent(new CustomEvent("vision:repeatNav"));
-            setLastAction("Repeating");
-            setAwake(false);
-            return;
-          }
-          if (intent.type === "NAVIGATE_TO") {
-            const msgs: Record<Lang, string> = {
-              en: `Opening walking directions to ${intent.destination}.`,
-              te: `${intent.destination} కు నడక మార్గదర్శకాన్ని తెరుస్తున్నాను.`,
-              hi: `${intent.destination} तक पैदल दिशा-निर्देश खोल रहा हूँ।`,
-            };
-            speak(msgs[detected], detected);
-            setLastAction(`Navigate → ${intent.destination}`);
-            navigate({ to: "/map" as any, search: { dest: intent.destination, lang: detected, auto: true } as any }).catch(() => {});
-            setAwake(false);
-            return;
-          }
-          if (intent.type === "MODE") {
-            // Exactly the same call the UI cards make — one Mode Manager.
-            openMode(intent.mode, {
-              lang: detected,
-              navigate: (o) => navigate({ to: o.to as any, search: o.search as any }),
-            });
-            setLastAction(`${intent.mode} — ${MODE_REGISTRY[intent.mode].say[detected]}`);
-            setAwake(false);
+          const label = executeIntent(intent, {
+            lang: detected,
+            navigate: (o) => navigate({ to: o.to as any, search: o.search as any }) as any,
+          });
+          if (label) {
+            setLastAction(label);
+            if (intent.type === "SET_LANG") { setLang(intent.lang); langRef.current = intent.lang; }
+            // Reading and speech controls keep the session awake for follow-ups.
+            const keepAwake = intent.type.startsWith("READ_") || intent.type === "STOP";
+            if (!keepAwake) setAwake(false);
             return;
           }
         }
