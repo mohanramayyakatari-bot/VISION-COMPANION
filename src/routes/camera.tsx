@@ -8,6 +8,7 @@ import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 import {
   ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent, setPersonRelations,
+  describeDetections,
 } from "@/lib/object-events";
 import { Button } from "@/components/ui/button";
 import {
@@ -228,15 +229,20 @@ function CameraPage() {
       // --- Object mode: event-driven. Only changes are spoken, immediately. ---
       if (m === "object") {
         const dets = parseDetections(text);
-        setResult(
-          dets.length
-            ? dets.map((d) => `${d.label} · ${d.position}${d.distance != null ? ` · ~${d.distance}m` : ""}`).join("\n")
-            : text,
-        );
+        const paragraph = describeDetections(dets, lang);
+        setResult(paragraph);
         const events = objEngine.current.update(dets);
+        // Urgent hazards still get their own interrupting line.
         for (const ev of events) {
+          if (!ev.urgent) continue;
           const line = describeEvent(ev, lang);
-          if (line) say(line, lang, ev.urgent ? "hazard" : "scene", { force: ev.urgent });
+          if (line) say(line, lang, "hazard", { force: true });
+        }
+        // Speak the whole scene as ONE paragraph, but only when something
+        // actually changed (event-driven) and the wording is new.
+        if (events.length && paragraph !== lastSpoken.current) {
+          lastSpoken.current = paragraph;
+          say(paragraph, lang, "scene");
         }
         return;
       }
