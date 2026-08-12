@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
+import { CreditBanner } from "@/components/CreditBanner";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -120,6 +121,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <CreditBanner />
       <Outlet />
       <VoiceAssistant />
       <Toaster />

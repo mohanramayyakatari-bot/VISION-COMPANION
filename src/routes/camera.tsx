@@ -2,10 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
-import { listAllPeople, loadPeopleRefsAsDataUrls } from "@/lib/people";
+import { listAllPeople, loadPeopleRefsAsDataUrls, type MergedPerson } from "@/lib/people";
 import { say, stopSpeaking, pauseSpeaking, resumeSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
+import { setCreditStatus, clearCreditStatus } from "@/lib/credit-status";
 import {
   ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent, setPersonRelations,
   describeDetections,
@@ -96,7 +97,7 @@ function CameraPage() {
   const [lang, setLang] = useState<Lang>(search.lang ?? getLang());
   const [result, setResult] = useState<string>("");
   const [auto, setAuto] = useState(!!search.auto);
-  const [people, setPeople] = useState(() => listAllPeople());
+  const [people, setPeople] = useState<MergedPerson[]>([]);
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpoken = useRef<string>("");
   const inFlight = useRef(false);
@@ -116,28 +117,38 @@ function CameraPage() {
     if (gateBusy.current) throw new Error("__skip__");
     if (creditsOut.current) throw new Error("__skip__");
     const wait = nextAllowedAt.current - Date.now();
-    if (wait > 0) throw new Error("__skip__");
+    if (wait > 0) {
+      setCreditStatus("rate_limit");
+      throw new Error("__skip__");
+    }
     gateBusy.current = true;
     try {
       const out = await analyze({ data: payload });
       // Soft errors come back as data now (no throw = no runtime overlay).
       if ((out as any)?.error === "rate_limit") {
+        setCreditStatus("rate_limit");
         backoffMs.current = Math.min(backoffMs.current ? backoffMs.current * 2 : 3000, 30000);
         nextAllowedAt.current = Date.now() + backoffMs.current;
         throw new Error("Rate limit — please wait a moment.");
       }
       if ((out as any)?.error === "no_credits") {
+        setCreditStatus("no_credits");
         creditsOut.current = true;
         throw new Error("AI credits exhausted. Please add credits.");
       }
+      clearCreditStatus();
       backoffMs.current = 0;
       return out;
     } catch (e) {
       if (isRateLimit(e)) {
+        setCreditStatus("rate_limit");
         backoffMs.current = Math.min(backoffMs.current ? backoffMs.current * 2 : 3000, 30000);
         nextAllowedAt.current = Date.now() + backoffMs.current;
       }
-      if (isOutOfCredits(e)) creditsOut.current = true;
+      if (isOutOfCredits(e)) {
+        setCreditStatus("no_credits");
+        creditsOut.current = true;
+      }
       throw e;
     } finally {
       gateBusy.current = false;
