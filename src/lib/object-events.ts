@@ -154,6 +154,72 @@ export function describeEvent(e: ObjectEvent, lang: Lang): string {
 
 // ---------------------------------------------------------------- faces ----
 
+// ------------------------------------------------- natural paragraph -------
+// Turns the detection list into ONE grammatical sentence-paragraph in the
+// active language. Presentation only — no change to detection itself.
+
+function fmtDist(d: number | null, lang: Lang): string {
+  if (d == null) return "";
+  const n = d % 1 === 0 ? String(d) : String(Math.round(d * 10) / 10);
+  return lang === "te" ? ` సుమారు ${n} మీటర్ల దూరంలో`
+    : lang === "hi" ? ` लगभग ${n} मीटर पर`
+    : ` at approximately ${n} meters`;
+}
+
+function joinList(parts: string[], lang: Lang): string {
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0]!;
+  const and = lang === "te" ? "మరియు" : lang === "hi" ? "और" : "and";
+  return `${parts.slice(0, -1).join(", ")} ${and} ${parts[parts.length - 1]}`;
+}
+
+/** One natural-language paragraph describing everything currently detected. */
+export function describeDetections(dets: Detection[], lang: Lang): string {
+  if (!dets.length) {
+    return lang === "te" ? "ప్రస్తుతం నాకు ఏ వస్తువూ కనిపించడం లేదు."
+      : lang === "hi" ? "अभी मुझे कोई वस्तु नहीं दिख रही है।"
+      : "I can't see any objects right now.";
+  }
+
+  // group identical labels so repeats read as "chairs on the left and right"
+  const groups = new Map<string, Detection[]>();
+  for (const d of dets) {
+    const k = d.label.toLowerCase();
+    const g = groups.get(k);
+    if (g) g.push(d); else groups.set(k, [d]);
+  }
+
+  const phrases: string[] = [];
+  for (const [, g] of groups) {
+    const label = g[0]!.label;
+    if (g.length === 1) {
+      const d = g[0]!;
+      phrases.push(
+        lang === "te" ? `${POS[lang][d.position]}${fmtDist(d.distance, lang)} ${label}`
+          : lang === "hi" ? `${POS[lang][d.position]}${fmtDist(d.distance, lang)} ${label}`
+          : `a ${label} ${POS[lang][d.position]}${fmtDist(d.distance, lang)}`,
+      );
+    } else {
+      const items = g.map((d) =>
+        lang === "en"
+          ? `${POS[lang][d.position]}${fmtDist(d.distance, lang)}`
+          : `${POS[lang][d.position]}${fmtDist(d.distance, lang)}`,
+      );
+      const list = joinList(items, lang);
+      phrases.push(
+        lang === "te" ? `${g.length} ${label}లు ${list}`
+          : lang === "hi" ? `${g.length} ${label} ${list}`
+          : `${g.length} ${label}s, ${list}`,
+      );
+    }
+  }
+
+  const body = joinList(phrases, lang);
+  return lang === "te" ? `నాకు ${body} కనిపిస్తున్నాయి.`
+    : lang === "hi" ? `मुझे ${body} दिखाई दे रहे हैं।`
+    : `I can see ${body}.`;
+}
+
 export type FaceObservation = {
   name: string;          // "unknown" for unmatched people
   position: Detection["position"];
