@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Languages, Volume2, Square, Users, Siren } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft, Languages, Volume2, Square, Users, Siren,
+  AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, CreditCard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { say, stopSpeaking } from "@/lib/speech-manager";
 import { getLang, setLang as setGlobalLang, onLangChange, LANG_LABEL, type Lang } from "@/lib/language";
+import { getCreditStatus, onCreditStatusChange, clearCreditStatus, type CreditStatus } from "@/lib/credit-status";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
