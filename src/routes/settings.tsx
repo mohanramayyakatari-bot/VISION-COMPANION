@@ -57,6 +57,8 @@ function SettingsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [lang, setLangState] = useState<Lang>(search.lang ?? getLang());
+  const [status, setStatus] = useState<CreditStatus>("ok");
+  const creditsRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const initial: Lang = search.lang ?? getLang();
@@ -65,6 +67,22 @@ function SettingsPage() {
     return onLangChange(setLangState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setStatus(getCreditStatus());
+    return onCreditStatusChange((s) => setStatus(s));
+  }, []);
+
+  useEffect(() => {
+    if (search.tab === "credits" && creditsRef.current) {
+      creditsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [search.tab]);
+
+  const isIssue = status === "rate_limit" || status === "no_credits";
+  const statusText = STATUS_TEXT[status][lang];
+  const StatusIcon = status === "ok" ? CheckCircle2 : status === "rate_limit" ? AlertTriangle : AlertCircle;
+  const statusClass = status === "ok" ? "text-success" : status === "rate_limit" ? "text-warning" : "text-destructive";
 
   const choose = (l: Lang) => {
     setGlobalLang(l);
