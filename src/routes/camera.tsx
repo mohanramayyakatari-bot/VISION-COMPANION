@@ -108,9 +108,13 @@ function CameraPage() {
   const backoffMs = useRef(0);
 
   const isRateLimit = (e: unknown) => /rate limit|429/i.test((e as any)?.message ?? "");
+  // 402 from the AI gateway — no amount of retrying helps until credits are topped up.
+  const isOutOfCredits = (e: unknown) => /credits exhausted|402/i.test((e as any)?.message ?? "");
+  const creditsOut = useRef(false);
 
   const callAnalyze = async (payload: any) => {
     if (gateBusy.current) throw new Error("__skip__");
+    if (creditsOut.current) throw new Error("__skip__");
     const wait = nextAllowedAt.current - Date.now();
     if (wait > 0) throw new Error("__skip__");
     gateBusy.current = true;
@@ -123,6 +127,7 @@ function CameraPage() {
         backoffMs.current = Math.min(backoffMs.current ? backoffMs.current * 2 : 3000, 30000);
         nextAllowedAt.current = Date.now() + backoffMs.current;
       }
+      if (isOutOfCredits(e)) creditsOut.current = true;
       throw e;
     } finally {
       gateBusy.current = false;
