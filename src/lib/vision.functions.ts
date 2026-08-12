@@ -88,11 +88,13 @@ export const analyzeFrame = createServerFn({ method: "POST" })
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Rate limit — please wait a moment.");
-      if (res.status === 402) throw new Error("AI credits exhausted. Please add credits.");
+      // Return soft errors instead of throwing: a thrown server-function error
+      // surfaces as a runtime-error overlay / blank screen on the client.
+      if (res.status === 429) return { text: "", error: "rate_limit" as const };
+      if (res.status === 402) return { text: "", error: "no_credits" as const };
       throw new Error(`Vision AI failed (${res.status}): ${text.slice(0, 200)}`);
     }
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = json.choices?.[0]?.message?.content?.trim() ?? "";
-    return { text: content };
+    return { text: content, error: null };
   });
