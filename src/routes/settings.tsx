@@ -148,6 +148,8 @@ function SettingsPage() {
           <Button variant="secondary" className="w-full justify-start" onClick={() => navigate({ to: "/emergency", search: { lang } as any })} aria-label="Open emergency contacts">
             <Siren className="size-4" /> Emergency contacts
           </Button>
+        </section>
+
         <section
           ref={creditsRef as any}
           className="glass-card rounded-2xl p-4 space-y-3"
