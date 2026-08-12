@@ -120,6 +120,16 @@ function CameraPage() {
     gateBusy.current = true;
     try {
       const out = await analyze({ data: payload });
+      // Soft errors come back as data now (no throw = no runtime overlay).
+      if ((out as any)?.error === "rate_limit") {
+        backoffMs.current = Math.min(backoffMs.current ? backoffMs.current * 2 : 3000, 30000);
+        nextAllowedAt.current = Date.now() + backoffMs.current;
+        throw new Error("Rate limit — please wait a moment.");
+      }
+      if ((out as any)?.error === "no_credits") {
+        creditsOut.current = true;
+        throw new Error("AI credits exhausted. Please add credits.");
+      }
       backoffMs.current = 0;
       return out;
     } catch (e) {
