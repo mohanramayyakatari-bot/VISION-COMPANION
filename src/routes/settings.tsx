@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft, Languages, Volume2, Square, Users, Siren,
   AlertCircle, AlertTriangle, CheckCircle2, ExternalLink, CreditCard,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { say, stopSpeaking } from "@/lib/speech-manager";
