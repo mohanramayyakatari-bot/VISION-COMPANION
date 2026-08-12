@@ -87,7 +87,7 @@ export function CreditBanner() {
     status === "ok"
       ? "bg-success/20 text-success border-success/30"
       : status === "rate_limit"
-        ? "bg-warning/25 text-warning-foreground border-warning/40"
+        ? "bg-warning/25 text-warning border-warning/40"
         : "bg-destructive/25 text-destructive-foreground border-destructive/40";
 
   const Icon =
