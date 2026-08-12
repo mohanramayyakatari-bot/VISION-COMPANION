@@ -148,6 +148,52 @@ function SettingsPage() {
           <Button variant="secondary" className="w-full justify-start" onClick={() => navigate({ to: "/emergency", search: { lang } as any })} aria-label="Open emergency contacts">
             <Siren className="size-4" /> Emergency contacts
           </Button>
+        <section
+          ref={creditsRef as any}
+          className="glass-card rounded-2xl p-4 space-y-3"
+          aria-labelledby="credits-h"
+        >
+          <h2 id="credits-h" className="text-sm font-semibold flex items-center gap-2">
+            <CreditCard className="size-4 text-primary-glow" /> AI Credits &amp; Status
+          </h2>
+
+          <div className={`flex items-start gap-3 rounded-xl p-3 border border-border ${status === "no_credits" ? "bg-destructive/10" : status === "rate_limit" ? "bg-warning/10" : "bg-secondary/50"}`}>
+            <StatusIcon className={`size-5 shrink-0 ${statusClass}`} aria-hidden />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${statusClass}`}>{statusText.title}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{statusText.body}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <a
+              href={PLANS_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-glow hover:opacity-90 transition-opacity"
+            >
+              <ExternalLink className="size-4" />
+              {lang === "te" ? "ప్లాన్‌లు & క్రెడిట్లు" : lang === "hi" ? "प्लान और क्रेडिट" : "Plans & credits"}
+            </a>
+            {isIssue && (
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  clearCreditStatus();
+                  say(
+                    lang === "te" ? "AI స్థితిని తిరిగి పరిశీలిస్తున్నాను."
+                      : lang === "hi" ? "AI स्थिति फिर से जाँच रहा हूँ।"
+                      : "Rechecking AI credit status.",
+                    lang, "general", { force: true },
+                  );
+                }}
+                aria-label="Recheck AI credit status"
+              >
+                <RefreshCw className="size-4" /> Recheck status
+              </Button>
+            )}
+          </div>
         </section>
       </main>
     </div>
