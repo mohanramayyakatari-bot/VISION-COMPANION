@@ -313,6 +313,19 @@ function CameraPage() {
       // Skipped or rate-limited frames are normal in a live loop — stay silent
       // and let the backoff schedule the next attempt.
       if (msg === "__skip__" || isRateLimit(e)) return;
+      if (isOutOfCredits(e)) {
+        // Nothing to retry: pause the live loop and say it once.
+        creditsOut.current = true;
+        setAuto(false);
+        if (autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+        const out =
+          lang === "te" ? "AI క్రెడిట్లు అయిపోయాయి. దయచేసి క్రెడిట్లు జోడించండి."
+            : lang === "hi" ? "AI क्रेडिट समाप्त हो गए हैं। कृपया क्रेडिट जोड़ें।"
+            : "AI credits are exhausted. Please add credits to continue.";
+        setErr(out);
+        say(out, lang, "general", { force: true });
+        return;
+      }
       setErr(msg);
       speak(msg, lang, "general", true);
     } finally {
@@ -320,7 +333,7 @@ function CameraPage() {
       setBusy(false);
       // Non-blocking: schedule next capture immediately; don't wait for TTS.
       // Safety mode runs as fast as the network allows (~800ms round-trip typical).
-      if (auto) {
+      if (auto && !creditsOut.current) {
         // A document reading session owns the voice until it finishes or the
         // user stops it — never re-OCR over the top of it.
         if (m === "read" && documentReader.isActive) return;
