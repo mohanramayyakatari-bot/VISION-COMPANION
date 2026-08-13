@@ -53,16 +53,33 @@ const MESSAGES: Record<
 
 export function CreditBanner() {
   const [status, setStatus] = useState<CreditStatus>("ok");
+  const [lastAt, setLastAt] = useState<number>(0);
+  const [now, setNow] = useState<number>(Date.now());
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+
+  const timeLabel = useMemo(() => {
+    if (!lastAt) return "";
+    const diff = Math.max(0, Math.floor((now - lastAt) / 1000));
+    if (diff < 60) return "Updated just now";
+    if (diff < 3600) return `Updated ${Math.floor(diff / 60)}m ago`;
+    return `Updated at ${new Date(lastAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }, [lastAt, now]);
 
   useEffect(() => {
     setMounted(true);
     setStatus(getCreditStatus());
-    return onCreditStatusChange((s) => {
+    setLastAt(getCreditStatusAt());
+    return onCreditStatusChange((s, at) => {
       setStatus(s);
+      setLastAt(at);
       setDismissed(false);
     });
+  }, []);
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
   }, []);
 
   // Announce status changes to screen-reader users and visually impaired users.
