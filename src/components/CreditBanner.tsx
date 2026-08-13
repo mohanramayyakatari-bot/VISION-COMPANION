@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertCircle, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import {
   getCreditStatus,
+  getCreditStatusAt,
   onCreditStatusChange,
   type CreditStatus,
 } from "@/lib/credit-status";
@@ -52,16 +53,33 @@ const MESSAGES: Record<
 
 export function CreditBanner() {
   const [status, setStatus] = useState<CreditStatus>("ok");
+  const [lastAt, setLastAt] = useState<number>(0);
+  const [now, setNow] = useState<number>(Date.now());
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+
+  const timeLabel = useMemo(() => {
+    if (!lastAt) return "";
+    const diff = Math.max(0, Math.floor((now - lastAt) / 1000));
+    if (diff < 60) return "Updated just now";
+    if (diff < 3600) return `Updated ${Math.floor(diff / 60)}m ago`;
+    return `Updated at ${new Date(lastAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }, [lastAt, now]);
 
   useEffect(() => {
     setMounted(true);
     setStatus(getCreditStatus());
-    return onCreditStatusChange((s) => {
+    setLastAt(getCreditStatusAt() || Date.now());
+    return onCreditStatusChange((s, at) => {
       setStatus(s);
+      setLastAt(at || Date.now());
       setDismissed(false);
     });
+  }, []);
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
   }, []);
 
   // Announce status changes to screen-reader users and visually impaired users.
@@ -102,12 +120,17 @@ export function CreditBanner() {
       className={`sticky top-0 z-50 ${statusClass} border-b px-4 py-2.5 backdrop-blur-md`}
       role="status"
       aria-live="polite"
-      aria-label={msg.label}
+      aria-label={timeLabel ? `${msg.label} — ${timeLabel}` : msg.label}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className="size-4 shrink-0" aria-hidden />
           <span className="text-sm font-semibold truncate">{msg.label}</span>
+          {timeLabel && (
+            <span className="text-xs opacity-75 hidden sm:inline">
+              · {timeLabel}
+            </span>
+          )}
           {isIssue && (
             <span className="text-xs opacity-90 hidden sm:inline">
               — {msg.line}

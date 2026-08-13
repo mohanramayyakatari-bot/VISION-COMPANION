@@ -8,7 +8,7 @@ const EVENT = "vision:creditStatusChanged";
 let current: CreditStatus = "ok";
 let lastAt = 0;
 
-function readStored(): CreditStatus | null {
+function readStored(): StoredStatus | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -19,7 +19,7 @@ function readStored(): CreditStatus | null {
       parsed.status === "rate_limit" ||
       parsed.status === "no_credits"
     ) {
-      return parsed.status;
+      return parsed;
     }
   } catch {
     /* ignore */
@@ -48,11 +48,21 @@ export function getCreditStatus(): CreditStatus {
   return current;
 }
 
+export function getCreditStatusAt(): number {
+  return lastAt;
+}
+
+export function touchCreditStatus() {
+  if (typeof window === "undefined") return;
+  lastAt = Date.now();
+  writeStored(current);
+  emit(current);
+}
+
 export function setCreditStatus(status: CreditStatus) {
   if (current === status) return;
   current = status;
-  writeStored(status);
-  emit(status);
+  touchCreditStatus();
 }
 
 export function clearCreditStatus() {
@@ -75,5 +85,8 @@ export function onCreditStatusChange(
 // real state immediately after a page reload.
 if (typeof window !== "undefined") {
   const saved = readStored();
-  if (saved) current = saved;
+  if (saved) {
+    current = saved.status;
+    lastAt = saved.at;
+  }
 }
