@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { AlertCircle, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import {
   getCreditStatus,
+  getCreditStatusAt,
   onCreditStatusChange,
   type CreditStatus,
 } from "@/lib/credit-status";
