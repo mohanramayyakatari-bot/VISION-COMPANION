@@ -137,6 +137,7 @@ function CameraPage() {
         throw new Error("AI credits exhausted. Please add credits.");
       }
       clearCreditStatus();
+      touchCreditStatus();
       backoffMs.current = 0;
       return out;
     } catch (e) {
