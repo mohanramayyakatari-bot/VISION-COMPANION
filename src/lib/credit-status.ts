@@ -75,5 +75,8 @@ export function onCreditStatusChange(
 // real state immediately after a page reload.
 if (typeof window !== "undefined") {
   const saved = readStored();
-  if (saved) current = saved;
+  if (saved) {
+    current = saved.status;
+    lastAt = saved.at;
+  }
 }
