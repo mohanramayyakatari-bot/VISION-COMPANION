@@ -8,7 +8,7 @@ const EVENT = "vision:creditStatusChanged";
 let current: CreditStatus = "ok";
 let lastAt = 0;
 
-function readStored(): CreditStatus | null {
+function readStored(): StoredStatus | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -19,7 +19,7 @@ function readStored(): CreditStatus | null {
       parsed.status === "rate_limit" ||
       parsed.status === "no_credits"
     ) {
-      return parsed.status;
+      return parsed;
     }
   } catch {
     /* ignore */
