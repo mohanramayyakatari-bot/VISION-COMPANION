@@ -48,11 +48,21 @@ export function getCreditStatus(): CreditStatus {
   return current;
 }
 
+export function getCreditStatusAt(): number {
+  return lastAt;
+}
+
+export function touchCreditStatus() {
+  if (typeof window === "undefined") return;
+  lastAt = Date.now();
+  writeStored(current);
+  emit(current);
+}
+
 export function setCreditStatus(status: CreditStatus) {
   if (current === status) return;
   current = status;
-  writeStored(status);
-  emit(status);
+  touchCreditStatus();
 }
 
 export function clearCreditStatus() {
