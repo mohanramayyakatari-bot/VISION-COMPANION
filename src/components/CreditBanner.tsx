@@ -120,12 +120,17 @@ export function CreditBanner() {
       className={`sticky top-0 z-50 ${statusClass} border-b px-4 py-2.5 backdrop-blur-md`}
       role="status"
       aria-live="polite"
-      aria-label={msg.label}
+      aria-label={timeLabel ? `${msg.label} — ${timeLabel}` : msg.label}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className="size-4 shrink-0" aria-hidden />
           <span className="text-sm font-semibold truncate">{msg.label}</span>
+          {timeLabel && (
+            <span className="text-xs opacity-75 hidden sm:inline">
+              · {timeLabel}
+            </span>
+          )}
           {isIssue && (
             <span className="text-xs opacity-90 hidden sm:inline">
               — {msg.line}
