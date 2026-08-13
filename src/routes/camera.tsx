@@ -6,7 +6,7 @@ import { listAllPeople, loadPeopleRefsAsDataUrls, type MergedPerson } from "@/li
 import { say, stopSpeaking, pauseSpeaking, resumeSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
-import { setCreditStatus, clearCreditStatus } from "@/lib/credit-status";
+import { setCreditStatus, clearCreditStatus, touchCreditStatus } from "@/lib/credit-status";
 import {
   ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent, setPersonRelations,
   describeDetections,
