@@ -69,10 +69,10 @@ export function CreditBanner() {
   useEffect(() => {
     setMounted(true);
     setStatus(getCreditStatus());
-    setLastAt(getCreditStatusAt());
+    setLastAt(getCreditStatusAt() || Date.now());
     return onCreditStatusChange((s, at) => {
       setStatus(s);
-      setLastAt(at);
+      setLastAt(at || Date.now());
       setDismissed(false);
     });
   }, []);
