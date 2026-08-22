@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { loadProfile, setGuest, getSessionUser } from "@/lib/session";
-import { say } from "@/lib/tts";
+import { say } from "@/lib/speech-manager";
 import { getLang, t } from "@/lib/language";
 
 export const Route = createFileRoute("/auth")({
@@ -93,7 +93,7 @@ function AuthPage() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    say(c.spoken, "normal").catch(() => {});
+    say(c.spoken, lang, "general");
     // Already signed in (e.g. returning from Google) → go straight in.
     getSessionUser().then(async (u) => {
       if (u) {
@@ -151,7 +151,7 @@ function AuthPage() {
         return;
       }
       setGuest(false);
-      say(`Signed in as ${profile.display_name}.`, "normal").catch(() => {});
+      say(`Signed in as ${profile.display_name}.`, lang, "general");
       navigate({ to: "/" });
     } finally {
       setBusy(false);
