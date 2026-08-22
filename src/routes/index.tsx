@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MODE_REGISTRY, type VisionMode } from "@/lib/vision-modes";
+import { getSessionUser, isGuest, loadProfile } from "@/lib/session";
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
   ShieldAlert, Languages, Brain, Navigation, Package, Siren,
