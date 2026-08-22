@@ -6,6 +6,7 @@ import { say } from "@/lib/speech-manager";
 import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";
+import { isGuest } from "@/lib/session";
 import { ArrowLeft, Camera as CameraIcon, Plus, Trash2, Users, Loader2, Save } from "lucide-react";
 
 type Lang = "en" | "te" | "hi";
@@ -32,8 +33,10 @@ const ANGLES = ["Front", "Left", "Right", "Up", "Down"];
 
 function PeoplePage() {
   const search = Route.useSearch();
+  const guest = typeof window !== "undefined" && isGuest();
   const lang: Lang = search.lang ?? "en";
   const [people, setPeople] = useState<MergedPerson[]>([]);
+  const [locked] = useState(guest);
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
   const [target, setTarget] = useState<string | null>(null); // person id being captured for
