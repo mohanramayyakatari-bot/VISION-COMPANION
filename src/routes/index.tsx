@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MODE_REGISTRY, type VisionMode } from "@/lib/vision-modes";
+import { getSessionUser, isGuest, loadProfile } from "@/lib/session";
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
   ShieldAlert, Languages, Brain, Navigation, Package, Siren,
@@ -80,6 +81,7 @@ const MODES: ModeDef[] = [
 ];
 
 function Index() {
+  const navigate = useNavigate();
   const [lang, setLang] = useState<Lang>("en");
   const [camOn, setCamOn] = useState(false);
   const [camErr, setCamErr] = useState<string | null>(null);
@@ -87,6 +89,17 @@ function Index() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const t = COPY[lang];
+
+  // Welcome gate: first visit (no account, no guest choice) goes to /auth.
+  useEffect(() => {
+    let cancelled = false;
+    getSessionUser().then((u) => {
+      if (cancelled) return;
+      if (u) { loadProfile(); return; }
+      if (!isGuest()) navigate({ to: "/auth" });
+    });
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((tr) => tr.stop());

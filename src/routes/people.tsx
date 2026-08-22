@@ -6,6 +6,7 @@ import { say } from "@/lib/speech-manager";
 import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";
+import { isGuest } from "@/lib/session";
 import { ArrowLeft, Camera as CameraIcon, Plus, Trash2, Users, Loader2, Save } from "lucide-react";
 
 type Lang = "en" | "te" | "hi";
@@ -32,8 +33,10 @@ const ANGLES = ["Front", "Left", "Right", "Up", "Down"];
 
 function PeoplePage() {
   const search = Route.useSearch();
+  const guest = typeof window !== "undefined" && isGuest();
   const lang: Lang = search.lang ?? "en";
   const [people, setPeople] = useState<MergedPerson[]>([]);
+  const [locked] = useState(guest);
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
   const [target, setTarget] = useState<string | null>(null); // person id being captured for
@@ -106,6 +109,26 @@ function PeoplePage() {
   };
 
   const shown = people.filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  if (locked) {
+    return (
+      <div className="min-h-dvh grid place-items-center px-4">
+        <div className="glass-card rounded-3xl p-8 max-w-md text-center border-2 border-border">
+          <Users className="size-10 mx-auto text-primary-glow mb-4" aria-hidden />
+          <h1 className="text-2xl font-bold mb-2">Account required</h1>
+          <p className="text-muted-foreground mb-6">
+            Managing people and personal face recognition needs an account. Guests can still use
+            object detection, reading, currency, navigation and voice.
+          </p>
+          <Link to="/auth">
+            <Button className="min-h-13 rounded-2xl bg-gradient-primary text-primary-foreground font-bold px-8">
+              Login or Sign Up
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh">

@@ -1,3 +1,5 @@
+import { cachedProfile } from "@/lib/session";
+
 export type Person = { id: string; name: string; relation?: string; file: string };
 export type CustomPerson = {
   id: string;
@@ -160,6 +162,12 @@ export function clearPeopleCache() {
 export async function loadPeopleRefsAsDataUrls() {
   if (cachedRefs) return cachedRefs;
   const out: Array<{ name: string; url: string }> = [];
+  // The signed-in user's own registered profile photos: recognized by their
+  // registered name instead of "unknown".
+  const me = cachedProfile();
+  if (me?.display_name && me.face_images?.length) {
+    for (const img of me.face_images.slice(0, 3)) out.push({ name: me.display_name, url: img });
+  }
   for (const p of listAllPeople()) {
     // locally captured images take priority (they are already data URLs)
     if (p.images.length) {
