@@ -1,5 +1,4 @@
-import { tr } from "@/lib/i18n";
-import { getLang } from "@/lib/language";
+import { useT } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -121,8 +120,8 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid lg:grid-cols-3 gap-4 mb-8">
           <div className="glass-card rounded-2xl p-6 lg:col-span-2">
-            <div className="text-xs uppercase tracking-wider text-primary-glow mb-2">{tr("dashboard.welcome", undefined, getLang())}</div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{tr("dashboard.greeting", undefined, getLang())}</h1>
+            <div className="text-xs uppercase tracking-wider text-primary-glow mb-2">{t("dashboard.welcome")}</div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">{t("dashboard.greeting")}</h1>
             <p className="text-sm text-muted-foreground mb-4">
               Say <span className="text-gradient font-semibold">“Hey Vision”</span> then a command like
               “object detection”, “read text”, “navigate outdoor” or “emergency”.
@@ -150,7 +149,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <h2 className="text-xl font-semibold mb-4">{tr("dashboard.allModes", undefined, getLang())}</h2>
+        <h2 className="text-xl font-semibold mb-4">{t("dashboard.allModes")}</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MODES.map((m) => (
             <button
@@ -196,7 +195,7 @@ function Dashboard() {
               </div>
 
               <div className="space-y-2">
-                <div className="text-xs uppercase tracking-wider text-primary-glow">{tr("dashboard.detected", undefined, getLang())}</div>
+                <div className="text-xs uppercase tracking-wider text-primary-glow">{t("dashboard.detected")}</div>
                 {active.demo.map((d) => (
                   <div key={d.label} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2 text-sm">
                     <span>{d.label}</span>
@@ -216,7 +215,7 @@ function Dashboard() {
                 <Button className="flex-1 bg-gradient-primary text-primary-foreground" onClick={() => speak(active.voice)}>
                   <Volume2 className="size-4" /> Speak
                 </Button>
-                <Button variant="secondary" onClick={() => setActive(null)}>{tr("common.close", undefined, getLang())}</Button>
+                <Button variant="secondary" onClick={() => setActive(null)}>{t("common.close")}</Button>
               </div>
             </>
           )}

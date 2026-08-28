@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { geocodePlace, getDirections } from "@/lib/maps.functions";
 import { say, stopSpeaking } from "@/lib/speech-manager";
 import { tr } from "@/lib/i18n";
+import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 
 type Lang = "en" | "te" | "hi";
 
@@ -162,7 +163,13 @@ function MapPage() {
   const search = Route.useSearch();
   const geocode = useServerFn(geocodePlace);
   const directions = useServerFn(getDirections);
-  const [lang, setLang] = useState<Lang>(search.lang ?? "en");
+  const [lang, setLangState] = useState<Lang>(search.lang ?? "en");
+  const setLang = (l: Lang) => { setLangState(l); setGlobalLang(l); };
+  useEffect(() => {
+    if (search.lang) setGlobalLang(search.lang); else setLangState(getLang());
+    return onLangChange(setLangState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [dest, setDest] = useState(search.dest ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
