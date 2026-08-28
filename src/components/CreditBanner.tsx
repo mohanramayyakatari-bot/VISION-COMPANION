@@ -8,50 +8,11 @@ import {
   type CreditStatus,
 } from "@/lib/credit-status";
 import { getLang } from "@/lib/language";
+import { useT, tr } from "@/lib/i18n";
 import { say } from "@/lib/speech-manager";
 
-type Lang = "en" | "te" | "hi";
-
-const MESSAGES: Record<
-  CreditStatus,
-  Record<Lang, { line: string; label: string }>
-> = {
-  ok: {
-    en: { line: "AI service is active.", label: "AI active" },
-    te: { line: "AI సేవా క్రియాశీలకంగా ఉంది.", label: "AI సక్రియం" },
-    hi: { line: "AI सेवा सक्रिय है।", label: "AI सक्रिय" },
-  },
-  rate_limit: {
-    en: {
-      line: "AI is being rate-limited. Requests are slowing down.",
-      label: "Rate limit",
-    },
-    te: {
-      line: "AI రేట్ పరిమితికి చేరుకుంది. అభ్యర్థనలు నెమ్మదిస్తున్నాయి.",
-      label: "రేట్ పరిమితి",
-    },
-    hi: {
-      line: "AI रेट सीमा तक पहुँच गया है। अनुरोध धीमे हो रहे हैं।",
-      label: "रेट सीमा",
-    },
-  },
-  no_credits: {
-    en: {
-      line: "AI credits are exhausted. Add credits to continue.",
-      label: "Credits exhausted",
-    },
-    te: {
-      line: "AI క్రెడిట్లు అయిపోయాయి. కొనసాగించడానికి క్రెడిట్లు జోడించండి.",
-      label: "క్రెడిట్లు ముగిశాయి",
-    },
-    hi: {
-      line: "AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए क्रेडिट जोड़ें।",
-      label: "क्रेडिट समाप्त",
-    },
-  },
-};
-
 export function CreditBanner() {
+  const { t } = useT();
   const [status, setStatus] = useState<CreditStatus>("ok");
   const [lastAt, setLastAt] = useState<number>(0);
   const [now, setNow] = useState<number>(Date.now());
@@ -61,10 +22,12 @@ export function CreditBanner() {
   const timeLabel = useMemo(() => {
     if (!lastAt) return "";
     const diff = Math.max(0, Math.floor((now - lastAt) / 1000));
-    if (diff < 60) return "Updated just now";
-    if (diff < 3600) return `Updated ${Math.floor(diff / 60)}m ago`;
-    return `Updated at ${new Date(lastAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }, [lastAt, now]);
+    if (diff < 60) return t("credit.updatedNow");
+    if (diff < 3600) return t("credit.updatedMin", { n: Math.floor(diff / 60) });
+    return t("credit.updatedAt", {
+      time: new Date(lastAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    });
+  }, [lastAt, now, t]);
 
   useEffect(() => {
     setMounted(true);
@@ -86,7 +49,7 @@ export function CreditBanner() {
   useEffect(() => {
     if (!mounted || status === "ok") return;
     const lang = getLang();
-    say(MESSAGES[status][lang].line, lang, "general", { force: true });
+    say(tr(`credit.${status}.line`, undefined, lang), lang, "general", { force: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, mounted]);
 
@@ -98,8 +61,7 @@ export function CreditBanner() {
   if (dismissed && status === "rate_limit") return null;
 
   const isIssue = status === "rate_limit" || status === "no_credits";
-  const lang = getLang();
-  const msg = MESSAGES[status][lang];
+  const msg = { label: t(`credit.${status}.label`), line: t(`credit.${status}.line`) };
 
   const statusClass =
     status === "ok"
@@ -144,14 +106,14 @@ export function CreditBanner() {
               search={{ tab: "credits" } as any}
               className="text-xs font-semibold underline underline-offset-2 hover:opacity-80"
             >
-              Plans &amp; credits
+              {t("common.plansCredits")}
             </Link>
           )}
           {status === "rate_limit" && (
             <button
               onClick={() => setDismissed(true)}
               className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
-              aria-label="Dismiss rate limit notice"
+              aria-label={t("credit.dismiss")}
             >
               <X className="size-3.5" />
             </button>

@@ -28,25 +28,9 @@ export const Route = createFileRoute("/settings")({
   }),
 });
 
-const PLANS_URL = "https://docs.lovable.dev/introduction/plans-and-credits";
+import { tr } from "@/lib/i18n";
 
-const STATUS_TEXT: Record<CreditStatus, Record<Lang, { title: string; body: string }>> = {
-  ok: {
-    en: { title: "AI service active", body: "You have AI credits available and the vision gateway is responding." },
-    te: { title: "AI సేవా క్రియాశీలకంగా ఉంది", body: "మీకు AI క్రెడిట్లు అందుబాటులో ఉన్నాయి మరియు విజన్ గేట్వే స్పందిస్తోంది." },
-    hi: { title: "AI सेवा सक्रिय है", body: "आपके पास AI क्रेडिट उपलब्ध हैं और विजन गेटवे प्रतिक्रिया दे रहा है।" },
-  },
-  rate_limit: {
-    en: { title: "AI rate limit", body: "Requests are being throttled. The app will slow down automatically." },
-    te: { title: "AI రేట్ పరిమితి", body: "అభ్యర్థనలు పరిమితం చేయబడ్డాయి. యాప్ స్వయంచాలకంగా నెమ్మదిస్తుంది." },
-    hi: { title: "AI रेट सीमा", body: "अनुरोध थ्रॉटल किए जा रहे हैं। ऐप स्वचालित रूप से धीमा हो जाएगा।" },
-  },
-  no_credits: {
-    en: { title: "AI credits exhausted", body: "Add credits to continue using live vision, navigation, and voice analysis." },
-    te: { title: "AI క్రెడిట్లు అయిపోయాయి", body: "లైవ్ విజన్, నావిగేషన్ మరియు వాయిస్ విశ్లేషణను కొనసాగించడానికి క్రెడిట్లు జోడించండి." },
-    hi: { title: "AI क्रेडिट समाप्त", body: "लाइव विजन, नेविगेशन और वॉयस विश्लेषण का उपयोग जारी रखने के लिए क्रेडिट जोड़ें।" },
-  },
-};
+const PLANS_URL = "https://docs.lovable.dev/introduction/plans-and-credits";
 
 const INTRO: Record<Lang, string> = {
   en: "Settings. Say change language to Hindi, English or Telugu. Say go back to return.",
@@ -81,7 +65,8 @@ function SettingsPage() {
   }, [search.tab]);
 
   const isIssue = status === "rate_limit" || status === "no_credits";
-  const statusText = STATUS_TEXT[status][lang];
+  const T = (k: string, v?: Record<string, string | number>) => tr(k, v, lang);
+  const statusText = { title: tr(`credit.${status}.label`, undefined, lang), body: tr(`credit.${status}.body`, undefined, lang) };
   const StatusIcon = status === "ok" ? CheckCircle2 : status === "rate_limit" ? AlertTriangle : AlertCircle;
   const statusClass = status === "ok" ? "text-success" : status === "rate_limit" ? "text-warning" : "text-destructive";
 
@@ -97,17 +82,17 @@ function SettingsPage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label="Go back to the home screen">
-          <ArrowLeft className="size-4" /> Back
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label={T("common.back")}>
+          <ArrowLeft className="size-4" /> {T("common.back")}
         </Link>
-        <h1 className="text-sm font-semibold">Settings</h1>
+        <h1 className="text-sm font-semibold">{T("settings.title")}</h1>
         <span className="w-12" />
       </header>
 
       <main className="p-4 space-y-4 max-w-lg mx-auto">
         <section className="glass-card rounded-2xl p-4" aria-labelledby="lang-h">
           <h2 id="lang-h" className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <Languages className="size-4 text-primary-glow" /> Language
+            <Languages className="size-4 text-primary-glow" /> {T("settings.language")}
           </h2>
           <div className="grid grid-cols-3 gap-2">
             {(["en", "te", "hi"] as Lang[]).map((l) => (
@@ -115,7 +100,7 @@ function SettingsPage() {
                 key={l}
                 onClick={() => choose(l)}
                 aria-pressed={lang === l}
-                aria-label={`Set application language to ${LANG_LABEL[l]}`}
+                aria-label={T("settings.setLangLabel", { name: LANG_LABEL[l] })}
                 className={`rounded-xl py-3 text-sm font-medium transition-all ${lang === l ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground"}`}
               >
                 {LANG_LABEL[l]}
@@ -123,31 +108,31 @@ function SettingsPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Voice: “Hey Vision, change language to Hindi.”
+            {T("settings.voiceHint")}
           </p>
         </section>
 
         <section className="glass-card rounded-2xl p-4" aria-labelledby="speech-h">
           <h2 id="speech-h" className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <Volume2 className="size-4 text-primary-glow" /> Speech
+            <Volume2 className="size-4 text-primary-glow" /> {T("settings.speech")}
           </h2>
           <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={() => say(INTRO[lang], lang, "general", { force: true })} aria-label="Test the spoken voice">
-              <Volume2 className="size-4" /> Test voice
+            <Button variant="secondary" className="flex-1" onClick={() => say(INTRO[lang], lang, "general", { force: true })} aria-label={T("settings.testVoice")}>
+              <Volume2 className="size-4" /> {T("settings.testVoice")}
             </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }} aria-label="Stop all speech">
-              <Square className="size-4" /> Stop speech
+            <Button variant="secondary" className="flex-1" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }} aria-label={T("settings.stopSpeech")}>
+              <Square className="size-4" /> {T("settings.stopSpeech")}
             </Button>
           </div>
         </section>
 
         <section className="glass-card rounded-2xl p-4 space-y-2" aria-labelledby="more-h">
-          <h2 id="more-h" className="text-sm font-semibold mb-1">More</h2>
-          <Button variant="secondary" className="w-full justify-start" onClick={() => navigate({ to: "/people", search: { lang } as any })} aria-label="Open people and face memory">
-            <Users className="size-4" /> People &amp; face memory
+          <h2 id="more-h" className="text-sm font-semibold mb-1">{T("settings.more")}</h2>
+          <Button variant="secondary" className="w-full justify-start" onClick={() => navigate({ to: "/people", search: { lang } as any })} aria-label={T("settings.people")}>
+            <Users className="size-4" /> {T("settings.people")}
           </Button>
-          <Button variant="secondary" className="w-full justify-start" onClick={() => navigate({ to: "/emergency", search: { lang } as any })} aria-label="Open emergency contacts">
-            <Siren className="size-4" /> Emergency contacts
+          <Button variant="secondary" className="w-full justify-start" onClick={() => navigate({ to: "/emergency", search: { lang } as any })} aria-label={T("settings.emergencyContacts")}>
+            <Siren className="size-4" /> {T("settings.emergencyContacts")}
           </Button>
         </section>
 
@@ -157,7 +142,7 @@ function SettingsPage() {
           aria-labelledby="credits-h"
         >
           <h2 id="credits-h" className="text-sm font-semibold flex items-center gap-2">
-            <CreditCard className="size-4 text-primary-glow" /> AI Credits &amp; Status
+            <CreditCard className="size-4 text-primary-glow" /> {T("settings.credits")}
           </h2>
 
           <div className={`flex items-start gap-3 rounded-xl p-3 border border-border ${status === "no_credits" ? "bg-destructive/10" : status === "rate_limit" ? "bg-warning/10" : "bg-secondary/50"}`}>
@@ -176,7 +161,7 @@ function SettingsPage() {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-glow hover:opacity-90 transition-opacity"
             >
               <ExternalLink className="size-4" />
-              {lang === "te" ? "ప్లాన్‌లు & క్రెడిట్లు" : lang === "hi" ? "प्लान और क्रेडिट" : "Plans & credits"}
+              {T("common.plansCredits")}
             </a>
             {isIssue && (
               <Button
@@ -191,9 +176,9 @@ function SettingsPage() {
                     lang, "general", { force: true },
                   );
                 }}
-                aria-label="Recheck AI credit status"
+                aria-label={T("settings.recheck")}
               >
-                <RefreshCw className="size-4" /> Recheck status
+                <RefreshCw className="size-4" /> {T("settings.recheck")}
               </Button>
             )}
           </div>

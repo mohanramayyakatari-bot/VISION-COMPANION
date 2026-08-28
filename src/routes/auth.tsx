@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { loadProfile, setGuest, getSessionUser } from "@/lib/session";
 import { say } from "@/lib/speech-manager";
-import { getLang, t } from "@/lib/language";
+import { getLang, onLangChange, t } from "@/lib/language";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -82,7 +82,8 @@ const COPY = {
 
 function AuthPage() {
   const navigate = useNavigate();
-  const lang = getLang();
+  const [lang, setLangState] = useState(getLang());
+  useEffect(() => { setLangState(getLang()); return onLangChange(setLangState); }, []);
   const c = t(COPY as any, lang) as unknown as (typeof COPY)["en"];
   const [mode, setMode] = useState<"choose" | "form">("choose");
   const [signup, setSignup] = useState(false);

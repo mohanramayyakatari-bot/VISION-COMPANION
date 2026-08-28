@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { geocodePlace, getDirections } from "@/lib/maps.functions";
 import { say, stopSpeaking } from "@/lib/speech-manager";
+import { tr } from "@/lib/i18n";
+import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 
 type Lang = "en" | "te" | "hi";
 
@@ -161,7 +163,13 @@ function MapPage() {
   const search = Route.useSearch();
   const geocode = useServerFn(geocodePlace);
   const directions = useServerFn(getDirections);
-  const [lang, setLang] = useState<Lang>(search.lang ?? "en");
+  const [lang, setLangState] = useState<Lang>(search.lang ?? "en");
+  const setLang = (l: Lang) => { setLangState(l); setGlobalLang(l); };
+  useEffect(() => {
+    if (search.lang) setGlobalLang(search.lang); else setLangState(getLang());
+    return onLangChange(setLangState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [dest, setDest] = useState(search.dest ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -209,7 +217,7 @@ function MapPage() {
               map.setCenter(p);
             } else userMarker.current.setPosition(p);
           },
-          () => setErr("Location permission denied. Enable location to get walking directions."),
+          () => setErr(tr("map.locationDenied", undefined, langRef.current)),
           { enableHighAccuracy: true, maximumAge: 5000 },
         );
       }
@@ -225,7 +233,7 @@ function MapPage() {
     setErr(null);
     if (!destination.trim()) return;
     const user = userMarker.current?.getPosition?.();
-    if (!user) { setErr("Waiting for your location…"); return; }
+    if (!user) { setErr(tr("map.waitingLocation", undefined, langRef.current)); return; }
     setBusy(true);
     try {
       const place = await geocode({ data: { query: destination } });
@@ -268,9 +276,9 @@ function MapPage() {
         };
         speak(intro[langRef.current], langRef.current);
       }
-      setStatus(`Navigating · ${place.name}`);
+      setStatus(tr("map.navigating", { place: place.name ?? "" }, langRef.current));
     } catch (e: any) {
-      setErr(e?.message ?? "Could not compute route.");
+      setErr(e?.message ?? tr("map.noRoute", undefined, langRef.current));
     } finally {
       setBusy(false);
     }
@@ -322,7 +330,7 @@ function MapPage() {
           if (Date.now() - (offRouteSince.current ?? 0) > 8000 && !rerouting.current && destAddr.current) {
             rerouting.current = true;
             speak(OFF_ROUTE_MSG[L], L, true);
-            setStatus("Off route — recalculating…");
+            setStatus(tr("map.offRoute", undefined, L));
             try { await startRoute(destAddr.current, true); } finally { rerouting.current = false; }
             return;
           }
@@ -360,7 +368,7 @@ function MapPage() {
         if (isLast) {
           arrived.current = true;
           speak(ARRIVED_MSG[L], L, true);
-          setStatus("Arrived");
+          setStatus(tr("map.arrived", undefined, L));
         } else {
           speak(now, L, true);
           setStepIdx((i) => i + 1);
@@ -388,10 +396,10 @@ function MapPage() {
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back
+          <ArrowLeft className="size-4" /> {tr("common.back", undefined, lang)}
         </Link>
         <div className="text-sm font-semibold flex items-center gap-2">
-          <Navigation className="size-4 text-primary-glow" /> Navigation
+          <Navigation className="size-4 text-primary-glow" /> {tr("map.title", undefined, lang)}
         </div>
         <div className="flex gap-1">
           {(["en", "te", "hi"] as Lang[]).map((l) => (
@@ -408,11 +416,11 @@ function MapPage() {
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input value={dest} onChange={(e) => setDest(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && startRoute(dest)}
-            placeholder="Where do you want to go?" className="pl-9" />
+            placeholder={tr("map.where", undefined, lang)} className="pl-9" />
         </div>
         <Button onClick={() => startRoute(dest)} disabled={busy} className="bg-gradient-primary text-primary-foreground shadow-glow">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Navigation className="size-4" />}
-          Go
+          {tr("map.go", undefined, lang)}
         </Button>
       </div>
 
@@ -426,16 +434,16 @@ function MapPage() {
           <div className="absolute left-3 right-3 bottom-3 glass-card rounded-2xl p-4 max-h-[40%] overflow-auto">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-xs text-primary-glow">Step {stepIdx + 1} of {route.steps.length}</p>
-                <p className="text-xs text-muted-foreground">{(route.distanceMeters / 1000).toFixed(1)} km · {Math.round(route.durationSeconds / 60)} min walking</p>
+                <p className="text-xs text-primary-glow">{tr("map.step", { i: stepIdx + 1, n: route.steps.length }, lang)}</p>
+                <p className="text-xs text-muted-foreground">{tr("map.summary", { km: (route.distanceMeters / 1000).toFixed(1), min: Math.round(route.durationSeconds / 60) }, lang)}</p>
                 {status && <p className="text-[10px] text-primary-glow mt-0.5">{status}</p>}
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" onClick={repeatCurrent}>
-                  <Volume2 className="size-4" /> Repeat
+                  <Volume2 className="size-4" /> {tr("map.repeat", undefined, lang)}
                 </Button>
                 <Button size="sm" variant="destructive" onClick={stopNav}>
-                  <Square className="size-4" /> Stop
+                  <Square className="size-4" /> {tr("map.stop", undefined, lang)}
                 </Button>
               </div>
             </div>

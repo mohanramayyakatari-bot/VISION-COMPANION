@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MODE_REGISTRY, type VisionMode } from "@/lib/vision-modes";
 import { getSessionUser, isGuest, loadProfile } from "@/lib/session";
+import { useT, type Lang } from "@/lib/i18n";
+
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
   ShieldAlert, Languages, Brain, Navigation, Package, Siren,
@@ -19,76 +21,36 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Lang = "en" | "te" | "hi";
-
-const COPY: Record<Lang, {
-  wake: string; hero: string; sub: string; startCam: string; modes: string;
-  hint: string; camHint: string; sayHey: string;
-}> = {
-  en: {
-    wake: 'Say "Hey Vision" to begin.',
-    hero: "Your AI eyes. Everywhere.",
-    sub: 'Say something like: what is this, read text, find money, describe scene, detect hazard.',
-    startCam: "Start Camera",
-    modes: "AI Modes",
-    hint: "Tap a mode or say a command",
-    camHint: "Allow camera to enable live AI analysis of objects, text, currency and surroundings.",
-    sayHey: 'Say "Hey Vision"',
-  },
-  te: {
-    wake: '"హే విజన్" అని చెప్పి ప్రారంభించండి.',
-    hero: "మీ AI కళ్ళు. ఎక్కడైనా.",
-    sub: "ఇలా చెప్పండి: ఇది ఏమిటి, వచనం చదువు, డబ్బు కనుగొను, దృశ్యం వివరించు, ప్రమాదం గుర్తించు.",
-    startCam: "కెమెరా ప్రారంభించు",
-    modes: "AI మోడ్‌లు",
-    hint: "మోడ్‌ను తాకండి లేదా ఆజ్ఞ చెప్పండి",
-    camHint: "వస్తువులు, వచనం, డబ్బు, పరిసరాల ప్రత్యక్ష AI విశ్లేషణకు కెమెరాను అనుమతించండి.",
-    sayHey: '"హే విజన్" అని చెప్పండి',
-  },
-  hi: {
-    wake: '"हे विज़न" कहकर शुरू करें।',
-    hero: "आपकी AI आँखें। हर जगह।",
-    sub: "ऐसा कहें: यह क्या है, पाठ पढ़ो, पैसे ढूँढो, दृश्य बताओ, खतरा पहचानो।",
-    startCam: "कैमरा शुरू करें",
-    modes: "AI मोड",
-    hint: "मोड चुनें या आवाज़ से आदेश दें",
-    camHint: "वस्तुओं, पाठ, मुद्रा और परिवेश के लाइव AI विश्लेषण के लिए कैमरे की अनुमति दें।",
-    sayHey: '"हे विज़न" कहें',
-  },
-};
-
-const LANG_LABEL: Record<Lang, string> = { en: "English", te: "తెలుగు", hi: "हिन्दी" };
-
 // Every card resolves through the shared VisionModeManager registry, so a tap
 // and the matching voice command open exactly the same mode with the same
-// services started.
-type ModeDef = { id: VisionMode; icon: any; label: Record<Lang, string> };
+// services started. Labels come from the central i18n dictionary.
+type ModeDef = { id: VisionMode; icon: any; labelKey: string };
 
 const MODES: ModeDef[] = [
-  { id: "OBJECT_DETECTION",   icon: Package,     label: { en: "Object Detection", te: "వస్తువుల గుర్తింపు", hi: "वस्तु पहचान" } },
-  { id: "SCENE_UNDERSTANDING", icon: Eye,        label: { en: "Scene Understand", te: "దృశ్య అవగాహన",     hi: "दृश्य समझ" } },
-  { id: "OCR",                icon: ScanText,    label: { en: "Read Text",        te: "వచనం చదువు",       hi: "पाठ पढ़ें" } },
-  { id: "CURRENCY",           icon: Coins,       label: { en: "Currency",         te: "కరెన్సీ",           hi: "मुद्रा" } },
-  { id: "PRODUCT",            icon: Package,     label: { en: "Product & Price",  te: "ఉత్పత్తి & ధర",     hi: "उत्पाद और मूल्य" } },
-  { id: "COLOR",              icon: Palette,     label: { en: "Color Detect",     te: "రంగు గుర్తింపు",    hi: "रंग पहचान" } },
-  { id: "FACE",               icon: Users,       label: { en: "Face Recognize",   te: "ముఖ గుర్తింపు",     hi: "चेहरा पहचान" } },
-  { id: "HAZARD",             icon: ShieldAlert, label: { en: "Hazard Alert",     te: "ప్రమాద హెచ్చరిక",   hi: "खतरा चेतावनी" } },
-  { id: "INDOOR_NAVIGATION",  icon: Navigation,  label: { en: "Indoor Nav",       te: "లోపలి మార్గం",     hi: "इनडोर मार्ग" } },
-  { id: "OUTDOOR_NAVIGATION", icon: MapPin,      label: { en: "Outdoor Nav",      te: "బాహ్య మార్గం",     hi: "बाहरी मार्ग" } },
-  { id: "SIGN_BUS",           icon: Bus,         label: { en: "Sign & Bus Board", te: "సైన్ & బస్ బోర్డ్",  hi: "साइन और बस बोर्ड" } },
-  { id: "PEOPLE_MANAGER",     icon: Users,       label: { en: "Manage People",    te: "వ్యక్తుల నిర్వహణ",  hi: "लोग प्रबंधित करें" } },
-  { id: "EMERGENCY",          icon: PhoneCall,   label: { en: "Emergency",        te: "అత్యవసరం",         hi: "आपातकाल" } },
+  { id: "OBJECT_DETECTION",   icon: Package,     labelKey: "modes.objectDetection" },
+  { id: "SCENE_UNDERSTANDING", icon: Eye,        labelKey: "modes.sceneUnderstanding" },
+  { id: "OCR",                icon: ScanText,    labelKey: "modes.ocr" },
+  { id: "CURRENCY",           icon: Coins,       labelKey: "modes.currency" },
+  { id: "PRODUCT",            icon: Package,     labelKey: "modes.product" },
+  { id: "COLOR",              icon: Palette,     labelKey: "modes.color" },
+  { id: "FACE",               icon: Users,       labelKey: "modes.face" },
+  { id: "HAZARD",             icon: ShieldAlert, labelKey: "modes.hazard" },
+  { id: "INDOOR_NAVIGATION",  icon: Navigation,  labelKey: "modes.indoorNav" },
+  { id: "OUTDOOR_NAVIGATION", icon: MapPin,      labelKey: "modes.outdoorNav" },
+  { id: "SIGN_BUS",           icon: Bus,         labelKey: "modes.signBus" },
+  { id: "PEOPLE_MANAGER",     icon: Users,       labelKey: "modes.peopleManager" },
+  { id: "EMERGENCY",          icon: PhoneCall,   labelKey: "modes.emergency" },
 ];
 
 function Index() {
   const navigate = useNavigate();
-  const [lang, setLang] = useState<Lang>("en");
+  const { t, lang, setLang, langLabel } = useT();
   const [camOn, setCamOn] = useState(false);
   const [camErr, setCamErr] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const t = COPY[lang];
+
 
   // Welcome gate: first visit (no account, no guest choice) goes to /auth.
   useEffect(() => {
@@ -136,8 +98,8 @@ function Index() {
               <Eye className="size-6 text-primary-foreground" />
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-lg leading-tight truncate">Vision Companion</div>
-              <div className="text-sm text-muted-foreground truncate">{t.wake}</div>
+              <div className="font-bold text-lg leading-tight truncate">{t("common.appName")}</div>
+              <div className="text-sm text-muted-foreground truncate">{t("home.wake")}</div>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -146,10 +108,10 @@ function Index() {
                 key={l}
                 onClick={() => setLang(l)}
                 aria-pressed={lang === l}
-                aria-label={`Switch language to ${LANG_LABEL[l]}`}
+                aria-label={t("home.switchLang", { name: langLabel[l] })}
                 className={`min-h-11 px-4 rounded-full text-sm font-semibold border-2 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${lang === l ? "bg-gradient-primary text-primary-foreground border-transparent shadow-glow" : "bg-secondary text-foreground border-border hover:bg-secondary/80"}`}
               >
-                {LANG_LABEL[l]}
+                {langLabel[l]}
               </button>
             ))}
           </div>
@@ -161,20 +123,20 @@ function Index() {
         <section aria-labelledby="hero-title" className="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden">
           <div className="absolute inset-0 -z-10 opacity-70" style={{ background: "var(--gradient-glow)" }} />
           <h1 id="hero-title" className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.02] mb-4">
-            {t.hero}
+            {t("home.hero")}
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl leading-relaxed mb-6">
-            {t.sub}
+            {t("home.sub")}
           </p>
           <div className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary/60 px-4 py-2 text-sm font-medium">
             <span className="size-2 rounded-full bg-success animate-pulse" />
-            {t.sayHey}
+            {t("home.sayHey")}
           </div>
         </section>
 
         {/* Camera preview */}
         <section aria-labelledby="cam-title" className="rounded-3xl border-2 border-border bg-black relative overflow-hidden aspect-video max-h-[560px]">
-          <h2 id="cam-title" className="sr-only">Live camera preview</h2>
+          <h2 id="cam-title" className="sr-only">{t("home.cameraPreview")}</h2>
           {camOn ? (
             <video
               ref={videoRef}
@@ -193,10 +155,10 @@ function Index() {
                   className="min-h-14 px-8 text-lg font-bold rounded-full bg-gradient-primary text-primary-foreground shadow-glow focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {starting ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}
-                  {t.startCam}
+                  {t("home.startCam")}
                 </Button>
                 <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                  {camErr ? camErr : t.camHint}
+                  {camErr ? camErr : t("home.camHint")}
                 </p>
               </div>
             </div>
@@ -210,7 +172,7 @@ function Index() {
             <div className="absolute bottom-3 right-3">
               <Link to="/camera" search={{ mode: undefined, lang, auto: false } as any}>
                 <Button size="lg" className="min-h-12 rounded-full bg-gradient-primary text-primary-foreground shadow-glow font-bold">
-                  Open Full Camera
+                  {t("home.openFullCamera")}
                 </Button>
               </Link>
             </div>
@@ -220,8 +182,8 @@ function Index() {
         {/* AI Modes */}
         <section aria-labelledby="modes-title">
           <div className="flex items-end justify-between mb-4 gap-4 flex-wrap">
-            <h2 id="modes-title" className="text-2xl md:text-3xl font-bold">{t.modes}</h2>
-            <p className="text-sm md:text-base text-muted-foreground">{t.hint}</p>
+            <h2 id="modes-title" className="text-2xl md:text-3xl font-bold">{t("home.modes")}</h2>
+            <p className="text-sm md:text-base text-muted-foreground">{t("home.hint")}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {MODES.map((m) => {
@@ -241,7 +203,7 @@ function Index() {
                     <Icon className="size-6 text-primary-foreground" aria-hidden />
                   </div>
                   <div className="mt-4 font-bold text-base md:text-lg leading-tight">
-                    {m.label[lang]}
+                    {t(m.labelKey)}
                   </div>
                 </Link>
               );
@@ -251,7 +213,7 @@ function Index() {
 
         <footer className="pt-6 pb-24 text-center text-sm text-muted-foreground">
           <div className="inline-flex items-center gap-2">
-            <Mic className="size-4" aria-hidden /> Voice assistant is always listening — say &ldquo;Hey Vision&rdquo;.
+            <Mic className="size-4" aria-hidden /> {t("home.footer")}
           </div>
         </footer>
       </main>
