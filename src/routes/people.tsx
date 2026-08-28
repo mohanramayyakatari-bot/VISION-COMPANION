@@ -7,7 +7,7 @@ import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";
 import { isGuest } from "@/lib/session";
-import { tr } from "@/lib/i18n";
+import { tr, useT } from "@/lib/i18n";
 import { ArrowLeft, Camera as CameraIcon, Plus, Trash2, Users, Loader2, Save } from "lucide-react";
 
 type Lang = "en" | "te" | "hi";
@@ -35,7 +35,7 @@ const ANGLE_KEYS = ["people.angle.front", "people.angle.left", "people.angle.rig
 function PeoplePage() {
   const search = Route.useSearch();
   const guest = typeof window !== "undefined" && isGuest();
-  const lang: Lang = search.lang ?? "en";
+  const { lang } = useT();
   const [people, setPeople] = useState<MergedPerson[]>([]);
   const [locked] = useState(guest);
   const [query, setQuery] = useState("");
@@ -92,7 +92,7 @@ function PeoplePage() {
     c.getContext("2d")?.drawImage(v, 0, 0, w, h);
     const url = c.toDataURL("image/jpeg", 0.75);
     setShots((s) => [...s, url]);
-    say(`Captured ${ANGLES[shots.length] ?? "angle"}.`, lang, "general", { force: true });
+    say(tr("people.captureLabel", { angle: ANGLE_KEYS[shots.length] ? tr(ANGLE_KEYS[shots.length], undefined, lang) : tr("people.angle.extra", undefined, lang) }, lang), lang, "general", { force: true });
   };
 
   const saveShots = () => {
