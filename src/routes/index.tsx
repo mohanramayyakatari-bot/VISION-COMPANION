@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { MODE_REGISTRY, type VisionMode } from "@/lib/vision-modes";
 import { getSessionUser, isGuest, loadProfile } from "@/lib/session";
 import { useT, type Lang } from "@/lib/i18n";
+import { stopActiveMode } from "@/lib/mode-lifecycle";
+
 
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
