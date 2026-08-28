@@ -89,6 +89,7 @@ function speak(text: string) {
 }
 
 function Dashboard() {
+  const { t } = useT();
   const [active, setActive] = useState<Mode | null>(null);
 
   const runMode = (m: Mode) => {
