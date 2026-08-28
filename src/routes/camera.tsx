@@ -381,6 +381,7 @@ function CameraPage() {
       // Skipped or rate-limited frames are normal in a live loop — stay silent
       // and let the backoff schedule the next attempt.
       if (msg === "__skip__" || isRateLimit(e)) return;
+      if (!session.alive) return;
       if (isOutOfCredits(e)) {
         // Nothing to retry: pause the live loop and say it once.
         creditsOut.current = true;
@@ -401,7 +402,8 @@ function CameraPage() {
       setBusy(false);
       // Non-blocking: schedule next capture immediately; don't wait for TTS.
       // Safety mode runs as fast as the network allows (~800ms round-trip typical).
-      if (auto && !creditsOut.current) {
+      if (auto && !creditsOut.current && session.alive) {
+
         // A document reading session owns the voice until it finishes or the
         // user stops it — never re-OCR over the top of it.
         if (m === "read" && documentReader.isActive) return;
