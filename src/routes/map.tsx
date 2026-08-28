@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { geocodePlace, getDirections } from "@/lib/maps.functions";
 import { say, stopSpeaking } from "@/lib/speech-manager";
+import { startMode, stopActiveMode, registerCleanup } from "@/lib/mode-lifecycle";
+
 import { tr } from "@/lib/i18n";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 
