@@ -3,6 +3,8 @@
 // the two interfaces can never drift apart.
 
 import { say } from "@/lib/speech-manager";
+import { stopActiveMode } from "@/lib/mode-lifecycle";
+
 
 export type Lang = "en" | "te" | "hi";
 
