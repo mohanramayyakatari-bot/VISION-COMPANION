@@ -281,6 +281,9 @@ function CameraPage() {
 
   const run = async (m: Mode = mode) => {
     if (inFlight.current) return;
+    // Never run a mode that is no longer the active one.
+    const session = sessionRef.current;
+    if (!session?.alive || session.name !== `camera:${m}`) return;
     const img = captureBase64();
     if (!img) { setErr(tr("camera.notReady", undefined, lang)); return; }
     inFlight.current = true;
@@ -291,6 +294,10 @@ function CameraPage() {
     try {
       const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
       const { text } = await callAnalyze({ imageBase64: img, mode: m, language: lang, peopleRefs });
+      // The mode may have been switched off while this request was in flight —
+      // discard the result instead of speaking over the new mode.
+      if (!session.alive) return;
+
 
       // --- Object mode: event-driven. Only changes are spoken, immediately. ---
       if (m === "object") {
