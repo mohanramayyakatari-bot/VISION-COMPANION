@@ -189,7 +189,7 @@ export function VoiceAssistant() {
           });
           if (label) {
             setLastAction(label);
-            if (intent.type === "SET_LANG") { setLang(intent.lang); langRef.current = intent.lang; }
+            if (intent.type === "SET_LANG") { setLang(intent.lang); langRef.current = intent.lang; setGlobalLang(intent.lang); }
             // Reading and speech controls keep the session awake for follow-ups.
             const keepAwake = intent.type.startsWith("READ_") || intent.type === "STOP";
             if (!keepAwake) setAwake(false);
@@ -201,6 +201,7 @@ export function VoiceAssistant() {
         if (swap) {
           langRef.current = swap.lang;
           setLang(swap.lang);
+          setGlobalLang(swap.lang);
           const msg: Record<Lang, string> = {
             en: `Switched to ${LANG_LABEL[swap.lang]}.`,
             te: `${LANG_LABEL[swap.lang]}కి మారాను.`,
@@ -237,7 +238,7 @@ export function VoiceAssistant() {
           const nextLang = match.langOverride ?? detected;
           const msg = match.responses[nextLang];
           speak(msg, nextLang, match.label === "Emergency" ? "emergency" : "general");
-          if (match.langOverride) { setLang(match.langOverride); langRef.current = match.langOverride; }
+          if (match.langOverride) { setLang(match.langOverride); langRef.current = match.langOverride; setGlobalLang(match.langOverride); }
           if (match.label === "Stop Navigation") {
             window.dispatchEvent(new CustomEvent("vision:stopNav"));
           } else if (match.label === "Repeat") {
@@ -344,7 +345,7 @@ export function VoiceAssistant() {
               {(["en", "te", "hi"] as Lang[]).map((l) => (
                 <button
                   key={l}
-                  onClick={() => { setLang(l); langRef.current = l; speak(GREETING[l], l); }}
+                  onClick={() => { setLang(l); langRef.current = l; setGlobalLang(l); speak(GREETING[l], l); }}
                   className={`px-2 py-1 rounded-md text-[10px] font-medium ${lang === l ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
                 >
                   {LANG_LABEL[l]}
