@@ -484,16 +484,17 @@ function CameraPage() {
   useEffect(() => {
     if (!ready || mode === "safety" || mode === "hazard") return;
     let cancelled = false;
+    const session = sessionRef.current;
 
     const tick = async () => {
-      if (cancelled) return;
+      if (cancelled || !session?.alive) return;
       if (!hazardBgBusy.current && !inFlight.current) {
         hazardBgBusy.current = true;
         try {
           const img = captureBase64();
           if (img) {
             const { text } = await callAnalyze({ imageBase64: img, mode: "safety", language: lang });
-            if (!cancelled && /^\s*HAZARD\s*:/i.test(text ?? "")) {
+            if (!cancelled && session.alive && /^\s*HAZARD\s*:/i.test(text ?? "")) {
               const clean = text.replace(/^\s*HAZARD\s*:\s*/i, "").trim();
               if (clean) say(clean, lang, "hazard", { force: true });
             }
@@ -504,7 +505,8 @@ function CameraPage() {
           hazardBgBusy.current = false;
         }
       }
-      if (!cancelled) hazardBgTimer.current = setTimeout(tick, Math.max(4000, nextAllowedAt.current - Date.now()));
+      if (!cancelled && session?.alive) hazardBgTimer.current = setTimeout(tick, Math.max(4000, nextAllowedAt.current - Date.now()));
+
     };
 
     hazardBgTimer.current = setTimeout(tick, 2000);
