@@ -63,9 +63,16 @@ function Index() {
     return () => { cancelled = true; };
   }, [navigate]);
 
+  // Returning to the homepage stops every mode: camera loops, navigation,
+  // background watches, timers and any speech still playing.
+  useEffect(() => {
+    stopActiveMode("home");
+  }, []);
+
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((tr) => tr.stop());
   }, []);
+
 
   const startCamera = async () => {
     setCamErr(null); setStarting(true);
