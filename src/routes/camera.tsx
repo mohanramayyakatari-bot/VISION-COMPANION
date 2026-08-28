@@ -668,7 +668,7 @@ function CameraPage() {
             return (
               <button
                 key={m.id}
-                onClick={() => { setMode(m.id); lastSpoken.current = ""; objEngine.current.reset(); run(m.id); }}
+                onClick={() => switchMode(m.id)}
                 disabled={!ready || busy}
                 className={`shrink-0 min-w-[86px] rounded-xl px-3 py-2 flex flex-col items-center gap-1 text-xs transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground hover:bg-secondary/70"} disabled:opacity-50`}
               >
