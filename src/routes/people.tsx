@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { say } from "@/lib/speech-manager";
+import { startMode, stopActiveMode, registerCleanup } from "@/lib/mode-lifecycle";
+
 import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";
@@ -51,14 +53,22 @@ function PeoplePage() {
   const refresh = () => setPeople(listAllPeople());
 
   useEffect(() => {
+    // People manager owns the active-mode slot while it is open.
+    startMode("PEOPLE_MANAGER");
+    registerCleanup(() => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    });
     refresh();
     const h = () => refresh();
     window.addEventListener("vision:peopleChanged", h);
     return () => {
       window.removeEventListener("vision:peopleChanged", h);
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      stopActiveMode("leave:people");
     };
   }, []);
+
 
   useEffect(() => {
     if (search.person) setQuery(search.person);

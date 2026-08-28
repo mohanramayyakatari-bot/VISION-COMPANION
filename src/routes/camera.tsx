@@ -8,6 +8,8 @@ import { say, stopSpeaking, pauseSpeaking, resumeSpeaking, type SpeechPriority }
 import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 import { setCreditStatus, clearCreditStatus, touchCreditStatus } from "@/lib/credit-status";
+import { startMode, stopActiveMode, registerCleanup, type ModeSession } from "@/lib/mode-lifecycle";
+
 import {
   ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent, setPersonRelations,
   describeDetections,
@@ -183,6 +185,41 @@ function CameraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ---- Mode lifecycle ---------------------------------------------------
+  // Exactly one mode runs at a time. Entering a mode opens a session; changing
+  // mode (tap or voice) tears the previous one down first: timers, in-flight
+  // requests, background loops and any speech still playing.
+  const sessionRef = useRef<ModeSession | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = startMode(`camera:${mode}`);
+    // Fresh analysis state for the new mode — no leftovers from the old one.
+    lastSpoken.current = "";
+    objEngine.current.reset();
+    faceTracker.current = new FaceTracker();
+
+    const teardown = () => {
+      if (autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+      if (faceBgTimer.current) { clearTimeout(faceBgTimer.current); faceBgTimer.current = null; }
+      if (hazardBgTimer.current) { clearTimeout(hazardBgTimer.current); hazardBgTimer.current = null; }
+      inFlight.current = false;
+      gateBusy.current = false;
+      faceBgBusy.current = false;
+      hazardBgBusy.current = false;
+      setBusy(false);
+    };
+    const unregister = registerCleanup(teardown);
+    return () => { unregister(); teardown(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Leaving the camera screen stops the mode completely (camera, loops, voice).
+  useEffect(() => () => {
+    stopActiveMode("leave:camera");
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
   // Spoken confirmation the moment a mode is launched from a card or voice command.
   useEffect(() => {
     const meta = MODES.find((m) => m.id === (search.mode ?? "scene"));
@@ -198,6 +235,7 @@ function CameraPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
 
   const startCamera = async (dir: "environment" | "user" = facing) => {
     setErr(null);
@@ -243,6 +281,9 @@ function CameraPage() {
 
   const run = async (m: Mode = mode) => {
     if (inFlight.current) return;
+    // Never run a mode that is no longer the active one.
+    const session = sessionRef.current;
+    if (!session?.alive || session.name !== `camera:${m}`) return;
     const img = captureBase64();
     if (!img) { setErr(tr("camera.notReady", undefined, lang)); return; }
     inFlight.current = true;
@@ -253,6 +294,10 @@ function CameraPage() {
     try {
       const peopleRefs = m === "face" ? await loadPeopleRefsAsDataUrls() : undefined;
       const { text } = await callAnalyze({ imageBase64: img, mode: m, language: lang, peopleRefs });
+      // The mode may have been switched off while this request was in flight —
+      // discard the result instead of speaking over the new mode.
+      if (!session.alive) return;
+
 
       // --- Object mode: event-driven. Only changes are spoken, immediately. ---
       if (m === "object") {
@@ -336,6 +381,7 @@ function CameraPage() {
       // Skipped or rate-limited frames are normal in a live loop — stay silent
       // and let the backoff schedule the next attempt.
       if (msg === "__skip__" || isRateLimit(e)) return;
+      if (!session.alive) return;
       if (isOutOfCredits(e)) {
         // Nothing to retry: pause the live loop and say it once.
         creditsOut.current = true;
@@ -356,7 +402,8 @@ function CameraPage() {
       setBusy(false);
       // Non-blocking: schedule next capture immediately; don't wait for TTS.
       // Safety mode runs as fast as the network allows (~800ms round-trip typical).
-      if (auto && !creditsOut.current) {
+      if (auto && !creditsOut.current && session.alive) {
+
         // A document reading session owns the voice until it finishes or the
         // user stops it — never re-OCR over the top of it.
         if (m === "read" && documentReader.isActive) return;
@@ -378,6 +425,19 @@ function CameraPage() {
     });
   };
 
+  /**
+   * Switch camera modes. The mode-lifecycle effect stops the previous mode
+   * (timers, loops, in-flight results, speech) before the new one runs.
+   */
+  const switchMode = (m: Mode, nextAuto?: boolean) => {
+    if (m === mode) { void run(m); return; }
+    documentReader.stop(true);
+    setMode(m);
+    if (typeof nextAuto === "boolean") setAuto(nextAuto);
+    setTimeout(() => run(m), 200);
+  };
+
+
   // ---- Background face recognition -------------------------------------
   // Runs alongside every other camera mode on the SAME video stream, so a
   // known person is announced even while reading text, navigating, etc.
@@ -387,9 +447,10 @@ function CameraPage() {
   useEffect(() => {
     if (!ready || mode === "face" || !FACE_BG_MODES.has(mode)) return;
     let cancelled = false;
+    const session = sessionRef.current;
 
     const tick = async () => {
-      if (cancelled) return;
+      if (cancelled || !session?.alive) return;
       if (!faceBgBusy.current && !inFlight.current) {
         faceBgBusy.current = true;
         try {
@@ -399,7 +460,8 @@ function CameraPage() {
             const { text } = await callAnalyze({
               imageBase64: img, mode: "face", language: lang, peopleRefs: refs,
             });
-            if (cancelled) return;
+            if (cancelled || !session.alive) return;
+
             // Same tracker as the dedicated Face mode: multi-frame verified,
             // announced once per person, silent while they stay in view.
             // Unknown people are announced too ("A person is in front of you").
@@ -414,7 +476,7 @@ function CameraPage() {
           faceBgBusy.current = false;
         }
       }
-      if (!cancelled) faceBgTimer.current = setTimeout(tick, Math.max(5000, nextAllowedAt.current - Date.now()));
+      if (!cancelled && session?.alive) faceBgTimer.current = setTimeout(tick, Math.max(5000, nextAllowedAt.current - Date.now()));
     };
 
     faceBgTimer.current = setTimeout(tick, 1500);
@@ -435,16 +497,17 @@ function CameraPage() {
   useEffect(() => {
     if (!ready || mode === "safety" || mode === "hazard") return;
     let cancelled = false;
+    const session = sessionRef.current;
 
     const tick = async () => {
-      if (cancelled) return;
+      if (cancelled || !session?.alive) return;
       if (!hazardBgBusy.current && !inFlight.current) {
         hazardBgBusy.current = true;
         try {
           const img = captureBase64();
           if (img) {
             const { text } = await callAnalyze({ imageBase64: img, mode: "safety", language: lang });
-            if (!cancelled && /^\s*HAZARD\s*:/i.test(text ?? "")) {
+            if (!cancelled && session.alive && /^\s*HAZARD\s*:/i.test(text ?? "")) {
               const clean = text.replace(/^\s*HAZARD\s*:\s*/i, "").trim();
               if (clean) say(clean, lang, "hazard", { force: true });
             }
@@ -455,7 +518,8 @@ function CameraPage() {
           hazardBgBusy.current = false;
         }
       }
-      if (!cancelled) hazardBgTimer.current = setTimeout(tick, Math.max(4000, nextAllowedAt.current - Date.now()));
+      if (!cancelled && session?.alive) hazardBgTimer.current = setTimeout(tick, Math.max(4000, nextAllowedAt.current - Date.now()));
+
     };
 
     hazardBgTimer.current = setTimeout(tick, 2000);
@@ -472,16 +536,12 @@ function CameraPage() {
       const detail = (e as CustomEvent).detail as { mode?: Mode; lang?: Lang; auto?: boolean };
       if (detail?.lang) setLang(detail.lang);
       if (!detail?.mode) return;
-      documentReader.stop(true);
-      setMode(detail.mode);
-      lastSpoken.current = "";
-      objEngine.current.reset();
-      if (typeof detail.auto === "boolean") setAuto(detail.auto);
-      setTimeout(() => run(detail.mode as Mode), 150);
+      switchMode(detail.mode, typeof detail.auto === "boolean" ? detail.auto : undefined);
     };
     const onStop = () => {
       setAuto(false);
       if (autoTimer.current) clearTimeout(autoTimer.current);
+      documentReader.stop(true);
       stopSpeaking();
     };
     const onCameraPower = (e: Event) => {
@@ -491,7 +551,7 @@ function CameraPage() {
         say(lang === "te" ? "కెమెరా ఆన్ అయింది." : lang === "hi" ? "कैमरा चालू है।" : "Camera is on.", lang, "general", { force: true });
       } else {
         setAuto(false);
-        if (autoTimer.current) clearTimeout(autoTimer.current);
+        stopActiveMode("camera:off");
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
         setReady(false);
@@ -499,18 +559,17 @@ function CameraPage() {
       }
     };
     const onCloseMode = () => {
-      documentReader.stop(true);
       setAuto(false);
-      if (autoTimer.current) clearTimeout(autoTimer.current);
+      // Full stop: loops, timers, document reading, speech and the camera itself.
+      stopActiveMode("closeMode");
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       setReady(false);
     };
     const onReadDocument = () => {
-      documentReader.stop(true);
-      setMode("read");
-      setTimeout(() => run("read"), 200);
+      switchMode("read");
     };
+
     const onPause = () => pauseSpeaking();
     const onResume = () => resumeSpeaking();
     window.addEventListener("vision:setMode", onSetMode);
@@ -609,7 +668,7 @@ function CameraPage() {
             return (
               <button
                 key={m.id}
-                onClick={() => { setMode(m.id); lastSpoken.current = ""; objEngine.current.reset(); run(m.id); }}
+                onClick={() => switchMode(m.id)}
                 disabled={!ready || busy}
                 className={`shrink-0 min-w-[86px] rounded-xl px-3 py-2 flex flex-col items-center gap-1 text-xs transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground hover:bg-secondary/70"} disabled:opacity-50`}
               >

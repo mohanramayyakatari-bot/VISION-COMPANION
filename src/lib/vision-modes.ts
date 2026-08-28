@@ -3,6 +3,8 @@
 // the two interfaces can never drift apart.
 
 import { say } from "@/lib/speech-manager";
+import { stopActiveMode } from "@/lib/mode-lifecycle";
+
 
 export type Lang = "en" | "te" | "hi";
 
@@ -69,17 +71,27 @@ export function openMode(mode: VisionMode, opts: OpenModeOptions = {}) {
   const def = MODE_REGISTRY[mode];
   if (!def) return;
   const lang = opts.lang ?? "en";
-  if (!opts.silent) {
+
+  // Hard stop of whatever is currently running (loops, timers, listeners and
+  // any speech) BEFORE the new mode starts. Only one mode may ever be live.
+  stopActiveMode(`open:${mode}`);
+
+  const confirm = () => {
+    if (opts.silent) return;
     say(def.say[lang], lang, mode === "EMERGENCY" ? "emergency" : "general", { force: true });
-  }
+  };
 
   const onCamera = typeof window !== "undefined" && window.location.pathname === "/camera";
   if (def.route === "/camera" && onCamera) {
     window.dispatchEvent(new CustomEvent("vision:setMode", {
       detail: { mode: def.cameraMode ?? "scene", lang, auto: !!def.auto },
     }));
+    // Speak after the switch so the new session's cleanup cannot cut it off.
+    setTimeout(confirm, 300);
     return;
   }
+  confirm();
+
 
   const search: Record<string, unknown> = { lang, ...(opts.search ?? {}) };
   if (def.cameraMode) search.mode = def.cameraMode;

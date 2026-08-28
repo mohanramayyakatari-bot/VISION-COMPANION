@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { say } from "@/lib/speech-manager";
+import { startMode, stopActiveMode } from "@/lib/mode-lifecycle";
+
 import { reverseGeocode } from "@/lib/maps.functions";
 import {
   addContact, buildAlertMessage, deleteContact, listContacts, moveContact,
@@ -66,11 +68,16 @@ function EmergencyPage() {
     return () => window.removeEventListener("vision:contactsChanged", h);
   }, []);
 
+  // Emergency takes over the single active-mode slot: any camera mode, live
+  // loop or ongoing announcement is stopped before the SOS screen speaks.
   useEffect(() => {
+    startMode("EMERGENCY");
     say(t.activated, lang, "emergency", { force: true, exclusive: true });
     void locate();
+    return () => stopActiveMode("leave:emergency");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const locate = async () => {
     setLocating(true);
