@@ -193,8 +193,19 @@ function MapPage() {
   const langRef = useRef<Lang>(search.lang ?? "en");
   useEffect(() => { langRef.current = lang; }, [lang]);
 
+  // Outdoor navigation owns the single active-mode slot: entering stops any
+  // camera mode still running, and leaving stops navigation completely.
+  useEffect(() => {
+    startMode("OUTDOOR_NAVIGATION");
+    registerCleanup(() => {
+      if (watchId.current != null) { navigator.geolocation.clearWatch(watchId.current); watchId.current = null; }
+    });
+    return () => stopActiveMode("leave:map");
+  }, []);
+
   // Init map + geolocation
   useEffect(() => {
+
     let cancelled = false;
     loadMaps().then((google) => {
       if (cancelled || !mapDiv.current) return;
