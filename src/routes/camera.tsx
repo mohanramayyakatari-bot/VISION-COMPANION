@@ -183,6 +183,41 @@ function CameraPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ---- Mode lifecycle ---------------------------------------------------
+  // Exactly one mode runs at a time. Entering a mode opens a session; changing
+  // mode (tap or voice) tears the previous one down first: timers, in-flight
+  // requests, background loops and any speech still playing.
+  const sessionRef = useRef<ModeSession | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = startMode(`camera:${mode}`);
+    // Fresh analysis state for the new mode — no leftovers from the old one.
+    lastSpoken.current = "";
+    objEngine.current.reset();
+    faceTracker.current = new FaceTracker();
+
+    const teardown = () => {
+      if (autoTimer.current) { clearTimeout(autoTimer.current); autoTimer.current = null; }
+      if (faceBgTimer.current) { clearTimeout(faceBgTimer.current); faceBgTimer.current = null; }
+      if (hazardBgTimer.current) { clearTimeout(hazardBgTimer.current); hazardBgTimer.current = null; }
+      inFlight.current = false;
+      gateBusy.current = false;
+      faceBgBusy.current = false;
+      hazardBgBusy.current = false;
+      setBusy(false);
+    };
+    const unregister = registerCleanup(teardown);
+    return () => { unregister(); teardown(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Leaving the camera screen stops the mode completely (camera, loops, voice).
+  useEffect(() => () => {
+    stopActiveMode("leave:camera");
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
   // Spoken confirmation the moment a mode is launched from a card or voice command.
   useEffect(() => {
     const meta = MODES.find((m) => m.id === (search.mode ?? "scene"));
@@ -198,6 +233,7 @@ function CameraPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
 
   const startCamera = async (dir: "environment" | "user" = facing) => {
     setErr(null);
