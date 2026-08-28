@@ -536,16 +536,12 @@ function CameraPage() {
       const detail = (e as CustomEvent).detail as { mode?: Mode; lang?: Lang; auto?: boolean };
       if (detail?.lang) setLang(detail.lang);
       if (!detail?.mode) return;
-      documentReader.stop(true);
-      setMode(detail.mode);
-      lastSpoken.current = "";
-      objEngine.current.reset();
-      if (typeof detail.auto === "boolean") setAuto(detail.auto);
-      setTimeout(() => run(detail.mode as Mode), 150);
+      switchMode(detail.mode, typeof detail.auto === "boolean" ? detail.auto : undefined);
     };
     const onStop = () => {
       setAuto(false);
       if (autoTimer.current) clearTimeout(autoTimer.current);
+      documentReader.stop(true);
       stopSpeaking();
     };
     const onCameraPower = (e: Event) => {
@@ -555,7 +551,7 @@ function CameraPage() {
         say(lang === "te" ? "కెమెరా ఆన్ అయింది." : lang === "hi" ? "कैमरा चालू है।" : "Camera is on.", lang, "general", { force: true });
       } else {
         setAuto(false);
-        if (autoTimer.current) clearTimeout(autoTimer.current);
+        stopActiveMode("camera:off");
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
         setReady(false);
@@ -563,18 +559,17 @@ function CameraPage() {
       }
     };
     const onCloseMode = () => {
-      documentReader.stop(true);
       setAuto(false);
-      if (autoTimer.current) clearTimeout(autoTimer.current);
+      // Full stop: loops, timers, document reading, speech and the camera itself.
+      stopActiveMode("closeMode");
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       setReady(false);
     };
     const onReadDocument = () => {
-      documentReader.stop(true);
-      setMode("read");
-      setTimeout(() => run("read"), 200);
+      switchMode("read");
     };
+
     const onPause = () => pauseSpeaking();
     const onResume = () => resumeSpeaking();
     window.addEventListener("vision:setMode", onSetMode);
