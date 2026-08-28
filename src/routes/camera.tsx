@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { analyzeFrame } from "@/lib/vision.functions";
 import { listAllPeople, loadPeopleRefsAsDataUrls, type MergedPerson } from "@/lib/people";
+import { tr } from "@/lib/i18n";
 import { say, stopSpeaking, pauseSpeaking, resumeSpeaking, type SpeechPriority } from "@/lib/speech-manager";
 import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
@@ -35,17 +36,17 @@ export const Route = createFileRoute("/camera")({
 type Lang = "en" | "te" | "hi";
 type Mode = "safety" | "scene" | "object" | "read" | "currency" | "color" | "hazard" | "navigate" | "face" | "product";
 
-const MODES: { id: Mode; label: string; icon: any; hint: Record<Lang, string> }[] = [
-  { id: "safety", label: "Safety Live", icon: Siren, hint: { en: "Continuous safety watch on.", te: "నిరంతర భద్రతా పర్యవేక్షణ.", hi: "लगातार सुरक्षा निगरानी।" } },
-  { id: "scene", label: "Describe Scene", icon: Eye, hint: { en: "Analyzing your surroundings.", te: "మీ చుట్టూ ఉన్నదాన్ని విశ్లేషిస్తున్నాను.", hi: "आपके आस-पास देख रहा हूँ।" } },
-  { id: "object", label: "Detect Objects", icon: Package, hint: { en: "Detecting objects.", te: "వస్తువులను గుర్తిస్తున్నాను.", hi: "वस्तुएँ पहचान रहा हूँ।" } },
-  { id: "read", label: "Read Text", icon: ScanText, hint: { en: "Reading the text.", te: "వచనాన్ని చదువుతున్నాను.", hi: "पाठ पढ़ रहा हूँ।" } },
-  { id: "currency", label: "Money", icon: Coins, hint: { en: "Checking the currency.", te: "కరెన్సీని పరిశీలిస్తున్నాను.", hi: "नोट पहचान रहा हूँ।" } },
-  { id: "color", label: "Color", icon: Palette, hint: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंग पहचान रहा हूँ।" } },
-  { id: "hazard", label: "Hazards", icon: ShieldAlert, hint: { en: "Checking for hazards.", te: "ప్రమాదాలను తనిఖీ చేస్తున్నాను.", hi: "खतरे देख रहा हूँ।" } },
-  { id: "navigate", label: "Navigate", icon: Navigation, hint: { en: "Guiding your next step.", te: "మీ తదుపరి అడుగును సూచిస్తున్నాను.", hi: "अगला कदम बता रहा हूँ।" } },
-  { id: "face", label: "People", icon: Users, hint: { en: "Looking for people.", te: "మనుషుల కోసం చూస్తున్నాను.", hi: "लोगों को देख रहा हूँ।" } },
-  { id: "product", label: "Product Label", icon: Package, hint: { en: "Reading the label.", te: "లేబుల్ చదువుతున్నాను.", hi: "लेबल पढ़ रहा हूँ।" } },
+const MODES: { id: Mode; labelKey: string; icon: any; hint: Record<Lang, string> }[] = [
+  { id: "safety", labelKey: "modes.safety", icon: Siren, hint: { en: "Continuous safety watch on.", te: "నిరంతర భద్రతా పర్యవేక్షణ.", hi: "लगातार सुरक्षा निगरानी।" } },
+  { id: "scene", labelKey: "modes.describeScene", icon: Eye, hint: { en: "Analyzing your surroundings.", te: "మీ చుట్టూ ఉన్నదాన్ని విశ్లేషిస్తున్నాను.", hi: "आपके आस-पास देख रहा हूँ।" } },
+  { id: "object", labelKey: "modes.detectObjects", icon: Package, hint: { en: "Detecting objects.", te: "వస్తువులను గుర్తిస్తున్నాను.", hi: "वस्तुएँ पहचान रहा हूँ।" } },
+  { id: "read", labelKey: "modes.ocr", icon: ScanText, hint: { en: "Reading the text.", te: "వచనాన్ని చదువుతున్నాను.", hi: "पाठ पढ़ रहा हूँ।" } },
+  { id: "currency", labelKey: "modes.money", icon: Coins, hint: { en: "Checking the currency.", te: "కరెన్సీని పరిశీలిస్తున్నాను.", hi: "नोट पहचान रहा हूँ।" } },
+  { id: "color", labelKey: "modes.color", icon: Palette, hint: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंग पहचान रहा हूँ।" } },
+  { id: "hazard", labelKey: "modes.hazards", icon: ShieldAlert, hint: { en: "Checking for hazards.", te: "ప్రమాదాలను తనిఖీ చేస్తున్నాను.", hi: "खतरे देख रहा हूँ।" } },
+  { id: "navigate", labelKey: "modes.navigate", icon: Navigation, hint: { en: "Guiding your next step.", te: "మీ తదుపరి అడుగును సూచిస్తున్నాను.", hi: "अगला कदम बता रहा हूँ।" } },
+  { id: "face", labelKey: "modes.people", icon: Users, hint: { en: "Looking for people.", te: "మనుషుల కోసం చూస్తున్నాను.", hi: "लोगों को देख रहा हूँ।" } },
+  { id: "product", labelKey: "modes.productLabel", icon: Package, hint: { en: "Reading the label.", te: "లేబుల్ చదువుతున్నాను.", hi: "लेबल पढ़ रहा हूँ।" } },
 ];
 
 const LANG_TAG: Record<Lang, string> = { en: "en-US", te: "te-IN", hi: "hi-IN" };
@@ -213,7 +214,7 @@ function CameraPage() {
       }
       setReady(true);
     } catch (e: any) {
-      setErr(e?.message ?? "Camera access was denied. Enable camera permission in your browser.");
+      setErr(e?.message ?? tr("camera.denied", undefined, lang));
       setReady(false);
     }
   };
@@ -243,7 +244,7 @@ function CameraPage() {
   const run = async (m: Mode = mode) => {
     if (inFlight.current) return;
     const img = captureBase64();
-    if (!img) { setErr("Camera not ready yet."); return; }
+    if (!img) { setErr(tr("camera.notReady", undefined, lang)); return; }
     inFlight.current = true;
     setBusy(true); setErr(null);
     const meta = MODES.find((x) => x.id === m)!;
@@ -535,10 +536,10 @@ function CameraPage() {
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back
+          <ArrowLeft className="size-4" /> {tr("common.back", undefined, lang)}
         </Link>
         <div className="text-sm font-semibold flex items-center gap-2">
-          <CameraIcon className="size-4 text-primary-glow" /> Live Camera
+          <CameraIcon className="size-4 text-primary-glow" /> {tr("camera.title", undefined, lang)}
         </div>
         <div className="flex gap-1">
           {(["en", "te", "hi"] as Lang[]).map((l) => (
@@ -546,7 +547,7 @@ function CameraPage() {
               key={l}
               onClick={() => { setLang(l); setGlobalLang(l); documentReader.setLang(l); }}
               className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${lang === l ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
-              aria-label={`Switch to ${LANG_LABEL[l]}`}
+              aria-label={tr("home.switchLang", { name: LANG_LABEL[l] }, lang)}
             >
               {LANG_LABEL[l]}
             </button>
@@ -564,7 +565,7 @@ function CameraPage() {
         <canvas ref={canvasRef} className="hidden" />
         {!ready && !err && (
           <div className="absolute inset-0 flex items-center justify-center text-white/80">
-            <Loader2 className="size-6 animate-spin mr-2" /> Starting camera…
+            <Loader2 className="size-6 animate-spin mr-2" /> {tr("camera.starting", undefined, lang)}
           </div>
         )}
         {err && (
@@ -572,7 +573,7 @@ function CameraPage() {
             <div className="glass-card rounded-2xl p-6 max-w-sm">
               <p className="text-sm mb-4">{err}</p>
               <Button onClick={() => startCamera(facing)} variant="secondary">
-                <RefreshCw className="size-4" /> Retry
+                <RefreshCw className="size-4" /> {tr("common.retry", undefined, lang)}
               </Button>
             </div>
           </div>
@@ -580,22 +581,22 @@ function CameraPage() {
 
         {result && (
           <div className="absolute left-3 right-3 bottom-3 glass-card rounded-2xl p-4 max-h-[38%] overflow-auto">
-            <p className="text-xs text-primary-glow mb-1">AI · {MODES.find((m) => m.id === mode)?.label}</p>
+            <p className="text-xs text-primary-glow mb-1">AI · {tr(MODES.find((m) => m.id === mode)?.labelKey ?? "", undefined, lang)}</p>
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{result}</p>
           </div>
         )}
 
         {mode === "face" && (
           <div className="absolute top-3 right-3 glass-card rounded-xl px-3 py-2 text-[10px] max-w-[55%]">
-            <p className="text-primary-glow mb-1">Trusted contacts ({people.length})</p>
+            <p className="text-primary-glow mb-1">{tr("camera.trusted", { n: people.length }, lang)}</p>
             <p className="text-muted-foreground leading-tight">{people.map((p) => p.name).join(" · ")}</p>
-            <Link to="/people" search={{ lang } as any} className="text-primary-glow underline mt-1 inline-block">Manage people</Link>
+            <Link to="/people" search={{ lang } as any} className="text-primary-glow underline mt-1 inline-block">{tr("camera.managePeople", undefined, lang)}</Link>
           </div>
         )}
 
         {busy && (
           <div className="absolute top-3 left-3 glass-card rounded-full px-3 py-1.5 text-xs flex items-center gap-2">
-            <Loader2 className="size-3 animate-spin" /> Analyzing…
+            <Loader2 className="size-3 animate-spin" /> {tr("camera.analyzing", undefined, lang)}
           </div>
         )}
       </div>
@@ -613,22 +614,22 @@ function CameraPage() {
                 className={`shrink-0 min-w-[86px] rounded-xl px-3 py-2 flex flex-col items-center gap-1 text-xs transition-all ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-foreground hover:bg-secondary/70"} disabled:opacity-50`}
               >
                 <Icon className="size-4" />
-                <span className="font-medium">{m.label}</span>
+                <span className="font-medium">{tr(m.labelKey, undefined, lang)}</span>
               </button>
             );
           })}
         </div>
         <div className="px-3 pb-4 flex items-center justify-between gap-2">
           <Button size="sm" variant="secondary" onClick={() => setFacing(facing === "environment" ? "user" : "environment")}>
-            <RefreshCw className="size-4" /> Flip
+            <RefreshCw className="size-4" /> {tr("camera.flip", undefined, lang)}
           </Button>
           <Button size="lg" onClick={() => run(mode)} disabled={!ready || busy} className="flex-1 bg-gradient-primary text-primary-foreground shadow-glow">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <CameraIcon className="size-4" />}
-            Capture &amp; Speak
+            {tr("camera.capture", undefined, lang)}
           </Button>
           <Button size="sm" variant={auto ? "default" : "secondary"} onClick={toggleAuto} disabled={!ready}>
             {auto ? <Square className="size-4" /> : <Play className="size-4" />}
-            {auto ? "Stop" : "Live"}
+            {auto ? tr("common.stop", undefined, lang) : tr("common.live", undefined, lang)}
           </Button>
         </div>
       </div>

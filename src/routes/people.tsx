@@ -7,6 +7,7 @@ import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";
 import { isGuest } from "@/lib/session";
+import { tr } from "@/lib/i18n";
 import { ArrowLeft, Camera as CameraIcon, Plus, Trash2, Users, Loader2, Save } from "lucide-react";
 
 type Lang = "en" | "te" | "hi";
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/people")({
   component: PeoplePage,
 });
 
-const ANGLES = ["Front", "Left", "Right", "Up", "Down"];
+const ANGLE_KEYS = ["people.angle.front", "people.angle.left", "people.angle.right", "people.angle.up", "people.angle.down"];
 
 function PeoplePage() {
   const search = Route.useSearch();
@@ -76,7 +77,7 @@ function PeoplePage() {
         }
       }, 40);
     } catch (e: any) {
-      const msg = "Camera permission is required.";
+      const msg = tr("people.camPermission", undefined, lang);
       setErr(e?.message ?? msg);
       say(msg, lang, "general", { force: true });
     }
@@ -98,9 +99,9 @@ function PeoplePage() {
     if (!shots.length) return;
     if (target) {
       updatePerson(target, { addImages: shots });
-      say("Face updated.", lang, "general", { force: true });
+      say(tr("people.faceUpdated", undefined, lang), lang, "general", { force: true });
     } else {
-      if (!newName.trim()) { setErr("Enter a name first."); return; }
+      if (!newName.trim()) { setErr(tr("people.needName", undefined, lang)); return; }
       addPerson(newName, shots);
       say(`${newName} added.`, lang, "general", { force: true });
       setNewName("");
@@ -115,14 +116,13 @@ function PeoplePage() {
       <div className="min-h-dvh grid place-items-center px-4">
         <div className="glass-card rounded-3xl p-8 max-w-md text-center border-2 border-border">
           <Users className="size-10 mx-auto text-primary-glow mb-4" aria-hidden />
-          <h1 className="text-2xl font-bold mb-2">Account required</h1>
+          <h1 className="text-2xl font-bold mb-2">{tr("people.accountRequired", undefined, lang)}</h1>
           <p className="text-muted-foreground mb-6">
-            Managing people and personal face recognition needs an account. Guests can still use
-            object detection, reading, currency, navigation and voice.
+            {tr("people.accountRequiredBody", undefined, lang)}
           </p>
           <Link to="/auth">
             <Button className="min-h-13 rounded-2xl bg-gradient-primary text-primary-foreground font-bold px-8">
-              Login or Sign Up
+              {tr("people.loginSignUp", undefined, lang)}
             </Button>
           </Link>
         </div>
@@ -135,20 +135,20 @@ function PeoplePage() {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b-2 border-border">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-4" /> Home
+            <ArrowLeft className="size-4" /> {tr("common.home", undefined, lang)}
           </Link>
-          <div className="font-bold flex items-center gap-2"><Users className="size-5 text-primary-glow" /> Face Manager</div>
-          <Link to="/camera" search={{ mode: "face", lang, auto: false } as any} className="text-sm text-primary-glow font-semibold">Recognize</Link>
+          <div className="font-bold flex items-center gap-2"><Users className="size-5 text-primary-glow" /> {tr("people.title", undefined, lang)}</div>
+          <Link to="/camera" search={{ mode: "face", lang, auto: false } as any} className="text-sm text-primary-glow font-semibold">{tr("people.recognize", undefined, lang)}</Link>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 pb-28">
         <section className="glass-card rounded-3xl p-5 border-2 border-border space-y-3">
           <h2 className="font-bold text-lg">
-            {target ? `Update photos — ${people.find((p) => p.id === target)?.name}` : "Add a new person"}
+            {target ? tr("people.updatePhotos", { name: people.find((p) => p.id === target)?.name ?? "" }, lang) : tr("people.addPerson", undefined, lang)}
           </h2>
           {!target && (
-            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Person's name" className="min-h-12" aria-label="Person's name" />
+            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr("people.personName", undefined, lang)} className="min-h-12" aria-label={tr("people.personName", undefined, lang)} />
           )}
           <div className="rounded-2xl overflow-hidden bg-black aspect-video relative">
             <video ref={videoRef} playsInline muted className="absolute inset-0 w-full h-full object-cover" />
@@ -156,24 +156,24 @@ function PeoplePage() {
             {!camOn && (
               <div className="absolute inset-0 grid place-items-center">
                 <Button onClick={() => void startCamera()} className="min-h-12 bg-gradient-primary text-primary-foreground">
-                  <CameraIcon className="size-5" /> Start camera
+                  <CameraIcon className="size-5" /> {tr("people.startCamera", undefined, lang)}
                 </Button>
               </div>
             )}
             {camOn && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs bg-background/80 rounded-full px-3 py-1.5">
-                Capture: {ANGLES[shots.length] ?? "extra angle"}
+                {tr("people.captureLabel", { angle: ANGLE_KEYS[shots.length] ? tr(ANGLE_KEYS[shots.length], undefined, lang) : tr("people.angle.extra", undefined, lang) }, lang)}
               </div>
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button onClick={capture} disabled={!camOn} className="min-h-12 flex-1 bg-gradient-primary text-primary-foreground">
-              <CameraIcon className="size-4" /> Capture angle ({shots.length})
+              <CameraIcon className="size-4" /> {tr("people.captureAngle", { n: shots.length }, lang)}
             </Button>
             <Button onClick={saveShots} disabled={!shots.length} variant="secondary" className="min-h-12">
-              <Save className="size-4" /> Save
+              <Save className="size-4" /> {tr("common.save", undefined, lang)}
             </Button>
-            {target && <Button variant="secondary" className="min-h-12" onClick={() => { setTarget(null); setShots([]); }}>Cancel</Button>}
+            {target && <Button variant="secondary" className="min-h-12" onClick={() => { setTarget(null); setShots([]); }}>{tr("common.cancel", undefined, lang)}</Button>}
           </div>
           {!!shots.length && (
             <div className="flex gap-2 overflow-x-auto">
@@ -185,9 +185,9 @@ function PeoplePage() {
 
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold flex-1">Registered people ({people.length})</h2>
+            <h2 className="text-xl font-bold flex-1">{tr("people.registered", { n: people.length }, lang)}</h2>
           </div>
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search people" className="min-h-12" aria-label="Search people" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("people.searchPeople", undefined, lang)} className="min-h-12" aria-label={tr("people.searchPeople", undefined, lang)} />
           <ul className="space-y-2">
             {shown.map((p) => (
               <li key={p.id} className="glass-card rounded-2xl p-3 flex items-center gap-3 border-2 border-border">
@@ -204,18 +204,18 @@ function PeoplePage() {
                     aria-label={`Rename ${p.name}`}
                   />
                   <div className="text-xs text-muted-foreground mt-1">
-                    {p.builtin ? "Built-in" : "Custom"} · {(p.images.length || (p.file ? 1 : 0))} photo(s)
+                    {p.builtin ? tr("people.builtin", undefined, lang) : tr("people.custom", undefined, lang)} · {(p.images.length || (p.file ? 1 : 0))} {tr("people.photos", undefined, lang)}
                   </div>
                 </div>
                 <Button size="sm" variant="secondary" className="min-h-11" onClick={() => { setTarget(p.id); setShots([]); if (!camOn) void startCamera(); }}>
-                  <Plus className="size-4" /> Photos
+                  <Plus className="size-4" /> {tr("people.photosBtn", undefined, lang)}
                 </Button>
                 <Button size="sm" variant="secondary" className="min-h-11" aria-label={`Delete ${p.name}`} onClick={() => { deletePerson(p.id); refresh(); }}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </li>
             ))}
-            {!shown.length && <li className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> No matching people.</li>}
+            {!shown.length && <li className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> {tr("people.noMatch", undefined, lang)}</li>}
           </ul>
         </section>
       </main>

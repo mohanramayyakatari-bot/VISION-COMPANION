@@ -7,6 +7,7 @@ import { routeCommand } from "@/lib/voice-router";
 import { openMode, MODE_REGISTRY } from "@/lib/vision-modes";
 import { executeIntent } from "@/lib/command-manager";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
+import { tr } from "@/lib/i18n";
 
 type SRWindow = typeof window & {
   SpeechRecognition?: any;
@@ -302,14 +303,20 @@ export function VoiceAssistant() {
                 <Sparkles className="size-4 text-primary-foreground" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Vision Companion</p>
+                <p className="text-sm font-semibold">{tr("common.appName", undefined, lang)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {!supported ? "Voice not supported in this browser" : awake ? "Listening for command…" : listening ? "Say “Hey Vision”" : "Idle"}
+                  {!supported
+                    ? tr("voice.notSupported", undefined, lang)
+                    : awake
+                      ? tr("voice.listeningCmd", undefined, lang)
+                      : listening
+                        ? tr("voice.sayHeyVision", undefined, lang)
+                        : tr("voice.idle", undefined, lang)}
                 </p>
-                <p className="text-[10px] text-primary-glow mt-0.5">Language · {LANG_LABEL[lang]}</p>
+                <p className="text-[10px] text-primary-glow mt-0.5">{tr("voice.languageLabel", undefined, lang)} · {LANG_LABEL[lang]}</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Close">
+            <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label={tr("common.close", undefined, lang)}>
               <X className="size-4" />
             </button>
           </div>
@@ -345,15 +352,15 @@ export function VoiceAssistant() {
               ))}
             </div>
             <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, color, face, hazard, and emergency."); }}>
-              Help
+              {tr("common.help", undefined, lang)}
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }}>Stop</Button>
+            <Button size="sm" variant="secondary" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }}>{tr("common.stop", undefined, lang)}</Button>
           </div>
         </div>
       )}
       <button
         onClick={toggle}
-        aria-label={listening ? "Stop listening" : "Start voice assistant"}
+        aria-label={listening ? tr("voice.stopListening", undefined, lang) : tr("voice.startAssistant", undefined, lang)}
         className="fixed bottom-6 right-6 z-50 size-16 rounded-full bg-gradient-primary shadow-glow flex items-center justify-center text-primary-foreground hover:scale-105 transition-transform"
       >
         {listening && <span className="absolute inset-0 rounded-full bg-primary/40 animate-pulse-ring" />}
