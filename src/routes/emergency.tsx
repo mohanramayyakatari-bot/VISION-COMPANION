@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useT } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,37 +35,15 @@ export const Route = createFileRoute("/emergency")({
   component: EmergencyPage,
 });
 
-const T: Record<Lang, Record<string, string>> = {
-  en: {
-    title: "Emergency SOS", sos: "Send SOS to all contacts", locating: "Getting your location…",
-    sent: "Emergency message sent successfully to all emergency contacts.",
-    fail: "Unable to send emergency messages. Please check SMS permission and network.",
-    noContacts: "Add at least one emergency contact first.",
-    contacts: "Emergency contacts", add: "Add contact", name: "Name", phone: "Phone number",
-    activated: "Emergency mode activated.",
-  },
-  te: {
-    title: "అత్యవసర SOS", sos: "అందరికీ SOS పంపండి", locating: "మీ స్థానాన్ని పొందుతున్నాను…",
-    sent: "అత్యవసర సందేశం అందరికీ విజయవంతంగా పంపబడింది.",
-    fail: "అత్యవసర సందేశాలు పంపలేకపోయాను. SMS అనుమతి, నెట్‌వర్క్ తనిఖీ చేయండి.",
-    noContacts: "ముందుగా ఒక అత్యవసర పరిచయాన్ని జోడించండి.",
-    contacts: "అత్యవసర పరిచయాలు", add: "పరిచయాన్ని జోడించు", name: "పేరు", phone: "ఫోన్ నంబర్",
-    activated: "అత్యవసర మోడ్ ప్రారంభమైంది.",
-  },
-  hi: {
-    title: "आपातकालीन SOS", sos: "सभी को SOS भेजें", locating: "आपका स्थान ले रहा हूँ…",
-    sent: "आपातकालीन संदेश सभी संपर्कों को सफलतापूर्वक भेजा गया।",
-    fail: "आपातकालीन संदेश नहीं भेजा जा सका। SMS अनुमति और नेटवर्क जाँचें।",
-    noContacts: "पहले कम से कम एक आपातकालीन संपर्क जोड़ें।",
-    contacts: "आपातकालीन संपर्क", add: "संपर्क जोड़ें", name: "नाम", phone: "फ़ोन नंबर",
-    activated: "आपातकालीन मोड सक्रिय।",
-  },
-};
-
 function EmergencyPage() {
   const search = Route.useSearch();
-  const lang: Lang = search.lang ?? "en";
-  const t = T[lang];
+  const { lang, t: tk } = useT();
+  const t = {
+    title: tk("emergency.title"), sos: tk("emergency.sos"), locating: tk("emergency.locating"),
+    sent: tk("emergency.sent"), fail: tk("emergency.fail"), noContacts: tk("emergency.noContacts"),
+    contacts: tk("emergency.contacts"), add: tk("emergency.add"),
+    name: tk("common.name"), phone: tk("common.phone"), activated: tk("emergency.activated"),
+  };
   const revGeo = useServerFn(reverseGeocode);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -112,7 +91,7 @@ function EmergencyPage() {
       }
       return next;
     } catch (e: any) {
-      setError(e?.message ?? "Location permission is required for the emergency alert.");
+      setError(e?.message ?? tk("emergency.locationRequired"));
       return null;
     } finally {
       setLocating(false);
@@ -173,7 +152,7 @@ function EmergencyPage() {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b-2 border-border">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-4" /> Home
+            <ArrowLeft className="size-4" /> {tk("common.home")}
           </Link>
           <div className="font-bold flex items-center gap-2"><Siren className="size-5 text-destructive" /> {t.title}</div>
           <span className="w-14" />
@@ -192,11 +171,11 @@ function EmergencyPage() {
             <MapPin className="size-4" />
             {locating ? (<><Loader2 className="size-4 animate-spin" /> {t.locating}</>)
               : pos ? (address ?? `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`)
-              : (error ?? "Location unknown")}
+              : (error ?? tk("emergency.locationUnknown"))}
           </div>
           <div className="mt-3 flex gap-2 flex-wrap">
-            <Button variant="secondary" onClick={() => void locate()} className="min-h-11"><MapPin className="size-4" /> Refresh location</Button>
-            <Button variant="secondary" onClick={() => void shareLocation()} className="min-h-11"><Share2 className="size-4" /> Share location</Button>
+            <Button variant="secondary" onClick={() => void locate()} className="min-h-11"><MapPin className="size-4" /> {tk("emergency.refreshLocation")}</Button>
+            <Button variant="secondary" onClick={() => void shareLocation()} className="min-h-11"><Share2 className="size-4" /> {tk("emergency.shareLocation")}</Button>
           </div>
           {message && (
             <pre className="mt-4 whitespace-pre-wrap text-xs bg-secondary/60 rounded-xl p-3 border border-border">{message}</pre>
@@ -224,8 +203,8 @@ function EmergencyPage() {
             {contacts.map((c, i) => (
               <li key={c.id} className="glass-card rounded-2xl p-4 flex items-center gap-3 border-2 border-border">
                 <div className="flex flex-col">
-                  <button aria-label="Move up" disabled={i === 0} onClick={() => { moveContact(c.id, -1); refresh(); }} className="disabled:opacity-30"><ChevronUp className="size-4" /></button>
-                  <button aria-label="Move down" disabled={i === contacts.length - 1} onClick={() => { moveContact(c.id, 1); refresh(); }} className="disabled:opacity-30"><ChevronDown className="size-4" /></button>
+                  <button aria-label={tk("emergency.moveUp")} disabled={i === 0} onClick={() => { moveContact(c.id, -1); refresh(); }} className="disabled:opacity-30"><ChevronUp className="size-4" /></button>
+                  <button aria-label={tk("emergency.moveDown")} disabled={i === contacts.length - 1} onClick={() => { moveContact(c.id, 1); refresh(); }} className="disabled:opacity-30"><ChevronDown className="size-4" /></button>
                 </div>
                 <div className="flex-1 min-w-0">
                   {editing === c.id ? (
