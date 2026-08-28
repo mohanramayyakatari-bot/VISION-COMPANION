@@ -425,6 +425,19 @@ function CameraPage() {
     });
   };
 
+  /**
+   * Switch camera modes. The mode-lifecycle effect stops the previous mode
+   * (timers, loops, in-flight results, speech) before the new one runs.
+   */
+  const switchMode = (m: Mode, nextAuto?: boolean) => {
+    if (m === mode) { void run(m); return; }
+    documentReader.stop(true);
+    setMode(m);
+    if (typeof nextAuto === "boolean") setAuto(nextAuto);
+    setTimeout(() => run(m), 200);
+  };
+
+
   // ---- Background face recognition -------------------------------------
   // Runs alongside every other camera mode on the SAME video stream, so a
   // known person is announced even while reading text, navigating, etc.
