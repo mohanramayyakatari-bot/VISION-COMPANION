@@ -463,7 +463,7 @@ function CameraPage() {
           faceBgBusy.current = false;
         }
       }
-      if (!cancelled) faceBgTimer.current = setTimeout(tick, Math.max(5000, nextAllowedAt.current - Date.now()));
+      if (!cancelled && session?.alive) faceBgTimer.current = setTimeout(tick, Math.max(5000, nextAllowedAt.current - Date.now()));
     };
 
     faceBgTimer.current = setTimeout(tick, 1500);
