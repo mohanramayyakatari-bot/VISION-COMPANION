@@ -8,6 +8,8 @@ import { say, stopSpeaking, pauseSpeaking, resumeSpeaking, type SpeechPriority }
 import { documentReader, QUALITY_HINT } from "@/lib/document-reader";
 import { getLang, setLang as setGlobalLang, onLangChange } from "@/lib/language";
 import { setCreditStatus, clearCreditStatus, touchCreditStatus } from "@/lib/credit-status";
+import { startMode, stopActiveMode, registerCleanup, type ModeSession } from "@/lib/mode-lifecycle";
+
 import {
   ObjectEventEngine, FaceTracker, parseDetections, parseFaces, describeEvent, setPersonRelations,
   describeDetections,
