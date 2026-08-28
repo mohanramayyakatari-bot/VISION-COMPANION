@@ -548,7 +548,10 @@ export function tr(
  * command, settings toggle, or header buttons).
  */
 export function useT() {
-  const [lang, setLangState] = useState<Lang>(() => getLang());
+  // Always start from "en" so the server HTML and the first client render
+  // match; the persisted language is applied right after hydration.
+  const [lang, setLangState] = useState<Lang>("en");
+
 
   useEffect(() => {
     setLangState(getLang()); // sync after hydration (localStorage)
