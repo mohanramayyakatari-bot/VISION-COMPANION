@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { say } from "@/lib/speech-manager";
+import { startMode, stopActiveMode, registerCleanup } from "@/lib/mode-lifecycle";
+
 import {
   addPerson, deletePerson, listAllPeople, updatePerson, type MergedPerson,
 } from "@/lib/people";

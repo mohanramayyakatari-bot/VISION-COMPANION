@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { say } from "@/lib/speech-manager";
+import { startMode, stopActiveMode } from "@/lib/mode-lifecycle";
+
 import { reverseGeocode } from "@/lib/maps.functions";
 import {
   addContact, buildAlertMessage, deleteContact, listContacts, moveContact,
