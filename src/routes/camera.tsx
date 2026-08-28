@@ -434,9 +434,10 @@ function CameraPage() {
   useEffect(() => {
     if (!ready || mode === "face" || !FACE_BG_MODES.has(mode)) return;
     let cancelled = false;
+    const session = sessionRef.current;
 
     const tick = async () => {
-      if (cancelled) return;
+      if (cancelled || !session?.alive) return;
       if (!faceBgBusy.current && !inFlight.current) {
         faceBgBusy.current = true;
         try {
@@ -446,7 +447,8 @@ function CameraPage() {
             const { text } = await callAnalyze({
               imageBase64: img, mode: "face", language: lang, peopleRefs: refs,
             });
-            if (cancelled) return;
+            if (cancelled || !session.alive) return;
+
             // Same tracker as the dedicated Face mode: multi-frame verified,
             // announced once per person, silent while they stay in view.
             // Unknown people are announced too ("A person is in front of you").
