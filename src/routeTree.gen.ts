@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CameraRouteImport } from './routes/camera'
@@ -31,6 +33,16 @@ const PeopleRoute = PeopleRouteImport.update({
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmergencyRoute = EmergencyRouteImport.update({
@@ -65,6 +77,8 @@ export interface FileRoutesByFullPath {
   '/camera': typeof CameraRoute
   '/dashboard': typeof DashboardRoute
   '/emergency': typeof EmergencyRoute
+  '/help': typeof HelpRoute
+  '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/people': typeof PeopleRoute
   '/settings': typeof SettingsRoute
@@ -75,6 +89,8 @@ export interface FileRoutesByTo {
   '/camera': typeof CameraRoute
   '/dashboard': typeof DashboardRoute
   '/emergency': typeof EmergencyRoute
+  '/help': typeof HelpRoute
+  '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/people': typeof PeopleRoute
   '/settings': typeof SettingsRoute
@@ -86,6 +102,8 @@ export interface FileRoutesById {
   '/camera': typeof CameraRoute
   '/dashboard': typeof DashboardRoute
   '/emergency': typeof EmergencyRoute
+  '/help': typeof HelpRoute
+  '/history': typeof HistoryRoute
   '/map': typeof MapRoute
   '/people': typeof PeopleRoute
   '/settings': typeof SettingsRoute
@@ -98,6 +116,8 @@ export interface FileRouteTypes {
     | '/camera'
     | '/dashboard'
     | '/emergency'
+    | '/help'
+    | '/history'
     | '/map'
     | '/people'
     | '/settings'
@@ -108,6 +128,8 @@ export interface FileRouteTypes {
     | '/camera'
     | '/dashboard'
     | '/emergency'
+    | '/help'
+    | '/history'
     | '/map'
     | '/people'
     | '/settings'
@@ -118,6 +140,8 @@ export interface FileRouteTypes {
     | '/camera'
     | '/dashboard'
     | '/emergency'
+    | '/help'
+    | '/history'
     | '/map'
     | '/people'
     | '/settings'
@@ -129,6 +153,8 @@ export interface RootRouteChildren {
   CameraRoute: typeof CameraRoute
   DashboardRoute: typeof DashboardRoute
   EmergencyRoute: typeof EmergencyRoute
+  HelpRoute: typeof HelpRoute
+  HistoryRoute: typeof HistoryRoute
   MapRoute: typeof MapRoute
   PeopleRoute: typeof PeopleRoute
   SettingsRoute: typeof SettingsRoute
@@ -155,6 +181,20 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/emergency': {
@@ -201,6 +241,8 @@ const rootRouteChildren: RootRouteChildren = {
   CameraRoute: CameraRoute,
   DashboardRoute: DashboardRoute,
   EmergencyRoute: EmergencyRoute,
+  HelpRoute: HelpRoute,
+  HistoryRoute: HistoryRoute,
   MapRoute: MapRoute,
   PeopleRoute: PeopleRoute,
   SettingsRoute: SettingsRoute,

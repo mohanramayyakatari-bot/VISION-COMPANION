@@ -527,7 +527,64 @@ const hi: Dict = {
   "dashboard.detected": "पहचाना गया",
 };
 
+// ---- Spatial Glass mobile shell (navigation, history, help, onboarding) ----
+Object.assign(en, {
+  "nav.label": "Main navigation",
+  "nav.home": "Home",
+  "nav.history": "History",
+  "nav.vision": "Vision — start voice camera",
+  "nav.settings": "Settings",
+  "nav.help": "Help",
+  "home.tagline": "See More. Live Freer.",
+  "home.emergencyTitle": "Emergency",
+  "home.emergencySub": "SOS call and message with your location",
+  "history.title": "History",
+  "history.sub": "Everything you did recently on this device.",
+  "history.empty": "No activity yet. Open a mode or say “Hey Vision”.",
+  "history.clear": "Clear history",
+  "help.title": "Help",
+  "help.sub": "Say “Hey Vision”, then one of these:",
+  "help.privacy": "Voice runs on this device. History is stored locally.",
+});
+Object.assign(te, {
+  "nav.label": "ప్రధాన నావిగేషన్",
+  "nav.home": "హోమ్",
+  "nav.history": "చరిత్ర",
+  "nav.vision": "విజన్ — వాయిస్ కెమెరా ప్రారంభించు",
+  "nav.settings": "సెట్టింగ్‌లు",
+  "nav.help": "సహాయం",
+  "home.tagline": "ఎక్కువ చూడండి. స్వేచ్ఛగా జీవించండి.",
+  "home.emergencyTitle": "అత్యవసరం",
+  "home.emergencySub": "మీ లొకేషన్‌తో SOS కాల్ మరియు సందేశం",
+  "history.title": "చరిత్ర",
+  "history.sub": "ఈ పరికరంలో మీరు ఇటీవల చేసినవి.",
+  "history.empty": "ఇంకా ఏమీ లేదు. ఒక మోడ్ తెరవండి లేదా “హే విజన్” అనండి.",
+  "history.clear": "చరిత్రను తొలగించు",
+  "help.title": "సహాయం",
+  "help.sub": "“హే విజన్” అని చెప్పి, వీటిలో ఒకటి చెప్పండి:",
+  "help.privacy": "వాయిస్ ఈ పరికరంలోనే పనిచేస్తుంది. చరిత్ర స్థానికంగా ఉంటుంది.",
+});
+Object.assign(hi, {
+  "nav.label": "मुख्य नेविगेशन",
+  "nav.home": "होम",
+  "nav.history": "इतिहास",
+  "nav.vision": "विज़न — वॉयस कैमरा शुरू करें",
+  "nav.settings": "सेटिंग्स",
+  "nav.help": "सहायता",
+  "home.tagline": "और देखें। आज़ाद जिएँ।",
+  "home.emergencyTitle": "आपातकाल",
+  "home.emergencySub": "आपके स्थान के साथ SOS कॉल और संदेश",
+  "history.title": "इतिहास",
+  "history.sub": "इस डिवाइस पर हाल की गतिविधि।",
+  "history.empty": "अभी कुछ नहीं। कोई मोड खोलें या “हे विज़न” कहें।",
+  "history.clear": "इतिहास मिटाएँ",
+  "help.title": "सहायता",
+  "help.sub": "“हे विज़न” कहें, फिर इनमें से कुछ:",
+  "help.privacy": "आवाज़ इसी डिवाइस पर चलती है। इतिहास लोकल रहता है।",
+});
+
 export const DICTS: Record<Lang, Dict> = { en, te, hi };
+
 
 /** Translate a key with optional {placeholder} interpolation. */
 export function tr(
