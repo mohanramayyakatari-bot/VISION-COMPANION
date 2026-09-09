@@ -208,6 +208,7 @@ function Index() {
                   key={m.id}
                   to={MODE_REGISTRY[m.id].route}
                   search={modeSearch(m.id) as any}
+                  onClick={() => logActivity(m.labelKey)}
                   className="glass-panel group flex min-h-[5.5rem] flex-col justify-between rounded-2xl p-3.5 transition-transform active:scale-[0.98] hover:edge-glow focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring"
                 >
                   <span className="grid size-9 place-items-center rounded-xl bg-gradient-primary">
