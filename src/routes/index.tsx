@@ -5,11 +5,12 @@ import { MODE_REGISTRY, type VisionMode } from "@/lib/vision-modes";
 import { getSessionUser, isGuest, loadProfile } from "@/lib/session";
 import { useT, type Lang } from "@/lib/i18n";
 import { stopActiveMode } from "@/lib/mode-lifecycle";
-
+import { logActivity } from "@/lib/history";
+import { SpatialBackdrop, VisionLens, GlassButton, GlassPill } from "@/components/spatial";
 
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
-  ShieldAlert, Languages, Brain, Navigation, Package, Siren,
+  ShieldAlert, Navigation, Package, Siren, Settings,
   Bus, PhoneCall, Loader2,
 } from "lucide-react";
 
@@ -207,6 +208,7 @@ function Index() {
                   key={m.id}
                   to={MODE_REGISTRY[m.id].route}
                   search={modeSearch(m.id) as any}
+                  onClick={() => logActivity(m.labelKey)}
                   className="glass-panel group flex min-h-[5.5rem] flex-col justify-between rounded-2xl p-3.5 transition-transform active:scale-[0.98] hover:edge-glow focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring"
                 >
                   <span className="grid size-9 place-items-center rounded-xl bg-gradient-primary">

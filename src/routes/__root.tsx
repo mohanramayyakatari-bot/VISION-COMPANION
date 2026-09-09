@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { CreditBanner } from "@/components/CreditBanner";
 import { Toaster } from "@/components/ui/sonner";
+import { BottomNavigation } from "@/components/BottomNavigation";
 
 function NotFoundComponent() {
   return (
@@ -123,6 +124,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <CreditBanner />
       <Outlet />
+      <BottomNavigation />
       <VoiceAssistant />
       <Toaster />
     </QueryClientProvider>
