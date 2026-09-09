@@ -1,4 +1,4 @@
 # Roadmap
 
 - [x] Remove Color Detect mode from all screens, voice commands, and AI prompts
-- [ ] More UI/UX designs — ask user which screens/areas they want redesigned
+- [x] Switch the app to a white/light high-contrast theme
