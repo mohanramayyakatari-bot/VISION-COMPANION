@@ -5,11 +5,12 @@ import { MODE_REGISTRY, type VisionMode } from "@/lib/vision-modes";
 import { getSessionUser, isGuest, loadProfile } from "@/lib/session";
 import { useT, type Lang } from "@/lib/i18n";
 import { stopActiveMode } from "@/lib/mode-lifecycle";
-
+import { logActivity } from "@/lib/history";
+import { SpatialBackdrop, VisionLens, GlassButton, GlassPill } from "@/components/spatial";
 
 import {
   Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
-  ShieldAlert, Languages, Brain, Navigation, Package, Siren,
+  ShieldAlert, Navigation, Package, Siren, Settings,
   Bus, PhoneCall, Loader2,
 } from "lucide-react";
 
