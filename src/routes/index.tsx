@@ -9,7 +9,7 @@ import { logActivity } from "@/lib/history";
 import { SpatialBackdrop, VisionLens, GlassButton, GlassPill } from "@/components/spatial";
 
 import {
-  Eye, Mic, Camera, MapPin, ScanText, Coins, Palette, Users,
+  Eye, Mic, Camera, MapPin, ScanText, Coins, Users,
   ShieldAlert, Navigation, Package, Siren, Settings,
   Bus, PhoneCall, Loader2,
 } from "lucide-react";
@@ -35,7 +35,6 @@ const MODES: ModeDef[] = [
   { id: "OCR",                icon: ScanText,    labelKey: "modes.ocr" },
   { id: "CURRENCY",           icon: Coins,       labelKey: "modes.currency" },
   { id: "PRODUCT",            icon: Package,     labelKey: "modes.product" },
-  { id: "COLOR",              icon: Palette,     labelKey: "modes.color" },
   { id: "FACE",               icon: Users,       labelKey: "modes.face" },
   { id: "HAZARD",             icon: ShieldAlert, labelKey: "modes.hazard" },
   { id: "INDOOR_NAVIGATION",  icon: Navigation,  labelKey: "modes.indoorNav" },

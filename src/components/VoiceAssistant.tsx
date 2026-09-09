@@ -61,8 +61,6 @@ const COMMAND_ROUTES: Command[] = [
     responses: { en: "Reading text in front of you.", te: "మీ ముందున్న వచనాన్ని చదువుతున్నాను.", hi: "आपके सामने का पाठ पढ़ रहा हूँ।" } },
   { keys: ["money", "currency", "note", "rupee", "cash"], label: "Currency", route: "/camera", cameraMode: "currency",
     responses: { en: "Detecting currency notes.", te: "కరెన్సీ నోట్లను గుర్తిస్తున్నాను.", hi: "नोटों की पहचान कर रहा हूँ।" } },
-  { keys: ["color", "colour", "shade"], label: "Color", route: "/camera", cameraMode: "color",
-    responses: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंगों की पहचान कर रहा हूँ।" } },
   { keys: ["face", "friend", "who is", "recognize", "people"], label: "People", route: "/camera", cameraMode: "face",
     responses: { en: "Scanning for known faces.", te: "పరిచయమున్న ముఖాలను వెతుకుతున్నాను.", hi: "जानी-पहचानी शक्लें ढूँढ रहा हूँ।" } },
   { keys: ["hazard", "danger", "safe", "obstacle", "can i walk"], label: "Hazard Detection", route: "/camera", cameraMode: "hazard",
@@ -352,7 +350,7 @@ export function VoiceAssistant() {
                 </button>
               ))}
             </div>
-            <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, color, face, hazard, and emergency."); }}>
+            <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, face, hazard, and emergency."); }}>
               {tr("common.help", undefined, lang)}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }}>{tr("common.stop", undefined, lang)}</Button>

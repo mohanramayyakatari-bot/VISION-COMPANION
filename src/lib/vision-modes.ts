@@ -10,7 +10,7 @@ export type Lang = "en" | "te" | "hi";
 
 export type VisionMode =
   | "HOME" | "OBJECT_DETECTION" | "SCENE_UNDERSTANDING" | "OCR" | "CURRENCY"
-  | "PRODUCT" | "COLOR" | "FACE" | "HAZARD" | "INDOOR_NAVIGATION"
+  | "PRODUCT" | "FACE" | "HAZARD" | "INDOOR_NAVIGATION"
   | "OUTDOOR_NAVIGATION" | "SIGN_BUS" | "EMERGENCY" | "SHOPPING" | "PEOPLE_MANAGER";
 
 type ModeDef = {
@@ -34,8 +34,6 @@ export const MODE_REGISTRY: Record<VisionMode, ModeDef> = {
     say: { en: "Reading the product label.", te: "ఉత్పత్తి లేబుల్ చదువుతున్నాను.", hi: "प्रोडक्ट लेबल पढ़ रहा हूँ।" } },
   SHOPPING: { route: "/camera", cameraMode: "product",
     say: { en: "Shopping assistant ready.", te: "షాపింగ్ సహాయకుడు సిద్ధం.", hi: "शॉपिंग सहायक तैयार है।" } },
-  COLOR: { route: "/camera", cameraMode: "color",
-    say: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंग पहचान रहा हूँ।" } },
   FACE: { route: "/camera", cameraMode: "face", auto: true,
     say: { en: "Looking for people you know.", te: "మీకు తెలిసిన వ్యక్తుల కోసం చూస్తున్నాను.", hi: "जान-पहचान के लोगों को देख रहा हूँ।" } },
   HAZARD: { route: "/camera", cameraMode: "safety", auto: true,

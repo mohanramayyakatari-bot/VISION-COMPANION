@@ -77,10 +77,6 @@ const RULES: Rule[] = [
     "product", "product and price", "label", "medicine", "expiry", "barcode",
     "ఉత్పత్తి", "లేబుల్", "उत्पाद", "लेबल", "दवा",
   ]},
-  { mode: "COLOR", keys: [
-    "color detection", "colour detection", "color", "colour", "what colour", "what color",
-    "రంగు", "रंग",
-  ]},
   { mode: "HAZARD", keys: [
     "hazard", "danger", "safety", "is it safe", "can i walk", "obstacle",
     "ప్రమాదం", "సురక్షిత", "खतरा", "सुरक्षित", "बाधा",

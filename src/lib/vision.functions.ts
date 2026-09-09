@@ -35,8 +35,6 @@ const MODE_PROMPTS: Record<string, string> = {
     "AFTER that line, transcribe ALL visible text EXACTLY, in correct human reading order (headings first, then columns left to right, then paragraphs top to bottom). Keep paragraph breaks as blank lines. Do not summarise, translate, comment, or add anything that is not printed. If there is no text at all, output only: QUALITY: ok\\n(no text)",
   currency:
     "Identify every Indian rupee note or coin visible. State each denomination and then the total in words. If none, say 'I don't see any currency.'",
-  color:
-    "Name the dominant colors of the main objects in the image in one short sentence.",
   hazard:
     "Look for hazards for a blind pedestrian: stairs, vehicles, wet floor, fire, holes, glass, obstacles. If none, reassure the user in one sentence. Otherwise warn urgently and say where.",
   navigate:
