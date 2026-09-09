@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { say } from "@/lib/speech-manager";
 import { toast } from "sonner";
 import {
-  Eye, Camera, Mic, MapPin, Brain, ScanText, Coins, Palette, Users,
+  Eye, Camera, Mic, MapPin, Brain, ScanText, Coins, Users,
   ShieldAlert, Bell, Volume2, Navigation, Languages, Battery, Wifi,
   Sparkles, ArrowLeft, PlayCircle,
 } from "lucide-react";
@@ -58,10 +58,6 @@ const MODES: Mode[] = [
     demo: [{ label: "₹500 × 1", confidence: 99 }, { label: "₹200 × 2", confidence: 96 }, { label: "Total ₹900", confidence: 100 }],
     explain: "Identified notes by serial number patterns and denomination markings.",
     voice: "You are holding nine hundred rupees." },
-  { id: "color", icon: Palette, title: "Color Detection", desc: "Describe colors and count them.",
-    demo: [{ label: "Red apples: 2", confidence: 98 }, { label: "Yellow apple: 1", confidence: 95 }],
-    explain: "Segmented the frame and clustered pixels by hue.",
-    voice: "I see two red apples and one yellow apple." },
   { id: "face", icon: Users, title: "Face Recognition", desc: "Identify saved friends and family.",
     demo: [{ label: "Ravi (front)", confidence: 96 }, { label: "Sita (left)", confidence: 92 }, { label: "Amit (right)", confidence: 89 }],
     explain: "Matched three registered faces from your contacts book.",

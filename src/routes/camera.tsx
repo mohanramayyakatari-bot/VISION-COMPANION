@@ -16,7 +16,7 @@ import {
 } from "@/lib/object-events";
 import { Button } from "@/components/ui/button";
 import {
-  Camera as CameraIcon, Eye, ScanText, Coins, Palette, ShieldAlert,
+  Camera as CameraIcon, Eye, ScanText, Coins, ShieldAlert,
   Navigation, Users, Package, Loader2, ArrowLeft, RefreshCw, Play, Square, Siren,
 } from "lucide-react";
 
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/camera")({
 });
 
 type Lang = "en" | "te" | "hi";
-type Mode = "safety" | "scene" | "object" | "read" | "currency" | "color" | "hazard" | "navigate" | "face" | "product";
+type Mode = "safety" | "scene" | "object" | "read" | "currency" | "hazard" | "navigate" | "face" | "product";
 
 const MODES: { id: Mode; labelKey: string; icon: any; hint: Record<Lang, string> }[] = [
   { id: "safety", labelKey: "modes.safety", icon: Siren, hint: { en: "Continuous safety watch on.", te: "నిరంతర భద్రతా పర్యవేక్షణ.", hi: "लगातार सुरक्षा निगरानी।" } },
@@ -44,7 +44,6 @@ const MODES: { id: Mode; labelKey: string; icon: any; hint: Record<Lang, string>
   { id: "object", labelKey: "modes.detectObjects", icon: Package, hint: { en: "Detecting objects.", te: "వస్తువులను గుర్తిస్తున్నాను.", hi: "वस्तुएँ पहचान रहा हूँ।" } },
   { id: "read", labelKey: "modes.ocr", icon: ScanText, hint: { en: "Reading the text.", te: "వచనాన్ని చదువుతున్నాను.", hi: "पाठ पढ़ रहा हूँ।" } },
   { id: "currency", labelKey: "modes.money", icon: Coins, hint: { en: "Checking the currency.", te: "కరెన్సీని పరిశీలిస్తున్నాను.", hi: "नोट पहचान रहा हूँ।" } },
-  { id: "color", labelKey: "modes.color", icon: Palette, hint: { en: "Identifying colors.", te: "రంగులను గుర్తిస్తున్నాను.", hi: "रंग पहचान रहा हूँ।" } },
   { id: "hazard", labelKey: "modes.hazards", icon: ShieldAlert, hint: { en: "Checking for hazards.", te: "ప్రమాదాలను తనిఖీ చేస్తున్నాను.", hi: "खतरे देख रहा हूँ।" } },
   { id: "navigate", labelKey: "modes.navigate", icon: Navigation, hint: { en: "Guiding your next step.", te: "మీ తదుపరి అడుగును సూచిస్తున్నాను.", hi: "अगला कदम बता रहा हूँ।" } },
   { id: "face", labelKey: "modes.people", icon: Users, hint: { en: "Looking for people.", te: "మనుషుల కోసం చూస్తున్నాను.", hi: "लोगों को देख रहा हूँ।" } },
@@ -71,12 +70,11 @@ const MODE_PRIORITY: Record<Mode, SpeechPriority> = {
   face: "face",
   scene: "scene",
   object: "scene",
-  color: "general",
 };
 
 // Modes that keep background face recognition running alongside them.
 const FACE_BG_MODES = new Set<Mode>([
-  "safety", "scene", "object", "read", "currency", "color", "hazard", "navigate", "product",
+  "safety", "scene", "object", "read", "currency", "hazard", "navigate", "product",
 ]);
 
 // Extract a destination from phrases like "navigate to X" / "take me to X".
