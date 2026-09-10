@@ -4,6 +4,7 @@
 
 import { forwardRef, type ButtonHTMLAttributes, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import logoAsset from "@/assets/vision-companion-logo.png.asset.json";
 
 /** Ambient midnight background with two slow-drifting light orbs. */
 export function SpatialBackdrop() {
@@ -21,23 +22,16 @@ export function SpatialBackdrop() {
   );
 }
 
-/** The Vision Companion mark: a glowing circular AI lens. */
+/** The Vision Companion mark supplied by the product owner. */
 export function VisionLens({ size = 40, className }: { size?: number; className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={cn("relative grid place-items-center rounded-full", className)}
+    <img
+      src={logoAsset.url}
+      alt=""
+      aria-hidden="true"
+      className={cn("block shrink-0 rounded-[24%] object-contain", className)}
       style={{ width: size, height: size }}
-    >
-      <span className="absolute inset-0 rounded-full bg-gradient-primary opacity-90" />
-      <span className="absolute inset-0 rounded-full edge-glow" />
-      <span
-        className="relative rounded-full bg-background/90"
-        style={{ width: size * 0.42, height: size * 0.42 }}
-      >
-        <span className="absolute inset-[22%] rounded-full bg-primary-glow" />
-      </span>
-    </span>
+    />
   );
 }
 
