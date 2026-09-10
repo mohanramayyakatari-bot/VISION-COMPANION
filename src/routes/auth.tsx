@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, LogIn, UserRound, ArrowRight, Loader2 } from "lucide-react";
+import { LogIn, UserRound, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { loadProfile, setGuest, getSessionUser } from "@/lib/session";
 import { say } from "@/lib/speech-manager";
 import { getLang, onLangChange, t } from "@/lib/language";
+import { VisionLens } from "@/components/spatial";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -163,9 +164,7 @@ function AuthPage() {
     <div className="min-h-dvh grid place-items-center px-4 py-10">
       <main className="w-full max-w-lg glass-card rounded-3xl p-8 border-2 border-border">
         <div className="flex items-center gap-3 mb-6">
-          <div className="size-14 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow">
-            <Eye className="size-7 text-primary-foreground" aria-hidden />
-          </div>
+          <VisionLens size={56} className="shadow-glow" />
           <div>
             <h1 className="text-2xl font-black leading-tight">{c.title}</h1>
             <p className="text-sm text-muted-foreground">{c.sub}</p>
