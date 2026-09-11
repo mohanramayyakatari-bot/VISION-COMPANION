@@ -292,6 +292,12 @@ export function VoiceAssistant() {
     }
   };
 
+  useEffect(() => {
+    const onToggle = () => toggle();
+    window.addEventListener("vision:toggleAssistant", onToggle);
+    return () => window.removeEventListener("vision:toggleAssistant", onToggle);
+  });
+
   return (
     <>
       {open && (
@@ -357,14 +363,6 @@ export function VoiceAssistant() {
           </div>
         </div>
       )}
-      <button
-        onClick={toggle}
-        aria-label={listening ? tr("voice.stopListening", undefined, lang) : tr("voice.startAssistant", undefined, lang)}
-        className="fixed bottom-28 right-4 z-50 flex size-14 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow transition-transform hover:scale-105 sm:right-6 sm:size-16 lg:bottom-6"
-      >
-        {listening && <span className="absolute inset-0 rounded-full bg-primary/40 animate-pulse-ring" />}
-        {listening ? <Mic className="size-6 relative" /> : <MicOff className="size-6 relative" />}
-      </button>
     </>
   );
 }

@@ -2,7 +2,7 @@
 // Hidden on immersive screens (camera, onboarding) where it would cover the
 // live view.
 
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Clock, Settings, HelpCircle, Mic } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,6 @@ const HIDDEN_ON = ["/camera", "/map", "/auth"];
 
 export function BottomNavigation() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const { t, lang } = useT();
 
   if (HIDDEN_ON.some((p) => pathname.startsWith(p))) return null;
@@ -47,7 +46,7 @@ export function BottomNavigation() {
         {item("/history", t("nav.history"), Clock)}
 
         <button
-          onClick={() => navigate({ to: "/camera", search: { lang } as any })}
+          onClick={() => window.dispatchEvent(new CustomEvent("vision:toggleAssistant"))}
           aria-label={t("nav.vision")}
           className="relative -mt-8 grid size-16 shrink-0 place-items-center rounded-full bg-gradient-primary edge-glow focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring"
         >
