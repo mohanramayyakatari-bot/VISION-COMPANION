@@ -591,14 +591,14 @@ function CameraPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6">
+        <Link to="/" className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" /> {tr("common.back", undefined, lang)}
         </Link>
-        <div className="text-sm font-semibold flex items-center gap-2">
+        <div className="hidden text-sm font-semibold sm:flex items-center gap-2">
           <CameraIcon className="size-4 text-primary-glow" /> {tr("camera.title", undefined, lang)}
         </div>
-        <div className="flex gap-1">
+        <div className="flex justify-self-end gap-1">
           {(["en", "te", "hi"] as Lang[]).map((l) => (
             <button
               key={l}
@@ -612,7 +612,8 @@ function CameraPage() {
         </div>
       </header>
 
-      <div className="relative flex-1 bg-black overflow-hidden">
+      <main className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="relative min-h-[52dvh] overflow-hidden bg-foreground sm:min-h-[62dvh] lg:min-h-0">
         <video
           ref={videoRef}
           playsInline
@@ -621,7 +622,7 @@ function CameraPage() {
         />
         <canvas ref={canvasRef} className="hidden" />
         {!ready && !err && (
-          <div className="absolute inset-0 flex items-center justify-center text-white/80">
+          <div className="absolute inset-0 flex items-center justify-center text-primary-foreground/80">
             <Loader2 className="size-6 animate-spin mr-2" /> {tr("camera.starting", undefined, lang)}
           </div>
         )}
@@ -658,8 +659,8 @@ function CameraPage() {
         )}
       </div>
 
-      <div className="border-t border-border bg-background/95 backdrop-blur">
-        <div className="px-3 py-3 flex gap-2 overflow-x-auto">
+      <div className="border-t border-border bg-background/95 backdrop-blur lg:flex lg:min-h-0 lg:flex-col lg:border-l lg:border-t-0">
+        <div className="flex gap-2 overflow-x-auto px-3 py-3 lg:grid lg:grid-cols-2 lg:content-start lg:overflow-y-auto">
           {MODES.map((m) => {
             const Icon = m.icon;
             const active = mode === m.id;
@@ -676,11 +677,11 @@ function CameraPage() {
             );
           })}
         </div>
-        <div className="px-3 pb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 px-3 pb-4 lg:mt-auto lg:grid lg:grid-cols-2 lg:pt-3">
           <Button size="sm" variant="secondary" onClick={() => setFacing(facing === "environment" ? "user" : "environment")}>
             <RefreshCw className="size-4" /> {tr("camera.flip", undefined, lang)}
           </Button>
-          <Button size="lg" onClick={() => run(mode)} disabled={!ready || busy} className="flex-1 bg-gradient-primary text-primary-foreground shadow-glow">
+          <Button size="lg" onClick={() => run(mode)} disabled={!ready || busy} className="flex-1 bg-gradient-primary text-primary-foreground shadow-glow lg:col-span-2 lg:row-start-1">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <CameraIcon className="size-4" />}
             {tr("camera.capture", undefined, lang)}
           </Button>
@@ -690,6 +691,7 @@ function CameraPage() {
           </Button>
         </div>
       </div>
+      </main>
     </div>
   );
 }

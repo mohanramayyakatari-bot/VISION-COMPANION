@@ -161,9 +161,9 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-dvh grid place-items-center px-4 py-10">
-      <main className="w-full max-w-lg glass-card rounded-3xl p-8 border-2 border-border">
-        <div className="flex items-center gap-3 mb-6">
+    <div className="grid min-h-dvh place-items-center px-4 py-10 sm:px-6">
+      <main className="w-full max-w-lg rounded-3xl border-2 border-border p-5 glass-card sm:p-8 lg:max-w-xl">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 mb-6">
           <VisionLens size={56} className="shadow-glow" />
           <div>
             <h1 className="text-2xl font-black leading-tight">{c.title}</h1>
