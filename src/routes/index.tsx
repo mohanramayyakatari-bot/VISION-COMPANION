@@ -112,7 +112,7 @@ function Index() {
 
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-sheet">
-        <div className="mx-auto flex h-16 max-w-md items-center justify-between gap-3 px-4">
+        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2.5">
             <VisionLens size={36} />
             <div className="min-w-0">
@@ -144,15 +144,15 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 pt-5 pb-nav space-y-6">
+      <main className="mx-auto max-w-6xl px-4 pt-5 pb-nav space-y-8 sm:px-6 lg:pt-10">
         {/* Hero */}
-        <section aria-labelledby="hero-title" className="animate-rise">
-          <h1 id="hero-title" className="text-[2.6rem] font-black leading-[1.03] tracking-tight">
+        <section aria-labelledby="hero-title" className="animate-rise lg:max-w-3xl">
+          <h1 id="hero-title" className="text-[2.6rem] font-black leading-[1.03] tracking-normal sm:text-5xl lg:text-6xl">
             {t("home.hero")}
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t("home.sub")}</p>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-3 sm:max-w-xl">
             {!camOn && (
               <GlassButton
                 tone="primary"
@@ -175,7 +175,7 @@ function Index() {
         {camOn && (
           <section
             aria-labelledby="cam-title"
-            className="relative aspect-[3/4] overflow-hidden rounded-[1.75rem] border border-border bg-black"
+            className="relative aspect-[3/4] overflow-hidden rounded-[1.75rem] border border-border bg-foreground sm:aspect-video lg:max-w-4xl"
           >
             <h2 id="cam-title" className="sr-only">{t("home.cameraPreview")}</h2>
             <video ref={videoRef} playsInline muted className="absolute inset-0 size-full object-cover" />
@@ -199,7 +199,7 @@ function Index() {
             <h2 id="modes-title" className="text-lg font-bold">{t("home.modes")}</h2>
             <p className="truncate text-xs text-muted-foreground">{t("home.hint")}</p>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
             {MODES.map((m) => {
               const Icon = m.icon;
               return (

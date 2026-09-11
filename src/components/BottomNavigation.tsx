@@ -7,7 +7,7 @@ import { Home, Clock, Settings, HelpCircle, Mic } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const HIDDEN_ON = ["/camera", "/auth"];
+const HIDDEN_ON = ["/camera", "/map", "/auth"];
 
 export function BottomNavigation() {
   const { pathname } = useLocation();
@@ -40,9 +40,9 @@ export function BottomNavigation() {
   return (
     <nav
       aria-label={t("nav.label")}
-      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-6"
     >
-      <div className="mx-auto flex max-w-md items-center gap-1 rounded-[1.75rem] glass-sheet px-2 py-2">
+      <div className="mx-auto flex max-w-md items-center gap-1 rounded-[1.75rem] glass-sheet px-2 py-2 lg:max-w-2xl lg:px-4">
         {item("/", t("nav.home"), Home)}
         {item("/history", t("nav.history"), Clock)}
 

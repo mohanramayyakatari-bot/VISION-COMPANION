@@ -295,14 +295,14 @@ export function VoiceAssistant() {
   return (
     <>
       {open && (
-        <div className="fixed bottom-28 right-6 z-50 w-[340px] glass-card rounded-2xl p-4 shadow-elegant animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
+        <div className="fixed bottom-48 left-3 right-3 z-50 max-h-[min(32rem,calc(100dvh-13rem))] overflow-y-auto glass-card rounded-2xl p-4 shadow-elegant animate-in fade-in slide-in-from-bottom-4 sm:left-auto sm:right-6 sm:w-[360px] lg:bottom-24">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 mb-3">
+            <div className="flex min-w-0 items-center gap-2">
               <div className="size-8 rounded-full bg-gradient-primary flex items-center justify-center">
                 <Sparkles className="size-4 text-primary-foreground" />
               </div>
-              <div>
-                <p className="text-sm font-semibold">{tr("common.appName", undefined, lang)}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{tr("common.appName", undefined, lang)}</p>
                 <p className="text-xs text-muted-foreground">
                   {!supported
                     ? tr("voice.notSupported", undefined, lang)
@@ -338,7 +338,7 @@ export function VoiceAssistant() {
               <span className="text-primary-glow">AI:</span> {lastAction}
             </div>
           )}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <div className="flex gap-1">
               {(["en", "te", "hi"] as Lang[]).map((l) => (
                 <button
@@ -350,7 +350,7 @@ export function VoiceAssistant() {
                 </button>
               ))}
             </div>
-            <Button size="sm" variant="secondary" className="flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, face, hazard, and emergency."); }}>
+            <Button size="sm" variant="secondary" className="min-w-24 flex-1" onClick={() => { speak("Available commands: object detection, scene understanding, indoor navigation, outdoor navigation, read text, currency, face, hazard, and emergency."); }}>
               {tr("common.help", undefined, lang)}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => { stopSpeaking(); window.dispatchEvent(new CustomEvent("vision:stopSpeech")); }}>{tr("common.stop", undefined, lang)}</Button>
@@ -360,7 +360,7 @@ export function VoiceAssistant() {
       <button
         onClick={toggle}
         aria-label={listening ? tr("voice.stopListening", undefined, lang) : tr("voice.startAssistant", undefined, lang)}
-        className="fixed bottom-6 right-6 z-50 size-16 rounded-full bg-gradient-primary shadow-glow flex items-center justify-center text-primary-foreground hover:scale-105 transition-transform"
+        className="fixed bottom-28 right-4 z-50 flex size-14 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow transition-transform hover:scale-105 sm:right-6 sm:size-16 lg:bottom-6"
       >
         {listening && <span className="absolute inset-0 rounded-full bg-primary/40 animate-pulse-ring" />}
         {listening ? <Mic className="size-6 relative" /> : <MicOff className="size-6 relative" />}
