@@ -407,14 +407,14 @@ function MapPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6">
+        <Link to="/" className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" /> {tr("common.back", undefined, lang)}
         </Link>
-        <div className="text-sm font-semibold flex items-center gap-2">
+        <div className="hidden text-sm font-semibold sm:flex items-center gap-2">
           <Navigation className="size-4 text-primary-glow" /> {tr("map.title", undefined, lang)}
         </div>
-        <div className="flex gap-1">
+        <div className="flex justify-self-end gap-1">
           {(["en", "te", "hi"] as Lang[]).map((l) => (
             <button key={l} onClick={() => setLang(l)}
               className={`px-2 py-1 rounded-md text-xs font-medium ${lang === l ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
@@ -424,7 +424,7 @@ function MapPage() {
         </div>
       </header>
 
-      <div className="px-3 py-3 flex gap-2">
+      <div className="mx-auto flex w-full max-w-6xl gap-2 px-3 py-3 sm:px-6">
         <div className="relative flex-1">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input value={dest} onChange={(e) => setDest(e.target.value)}
@@ -441,12 +441,12 @@ function MapPage() {
         <div className="mx-3 mb-2 rounded-lg bg-destructive/15 text-destructive text-sm px-3 py-2">{err}</div>
       )}
 
-      <div className="relative flex-1 min-h-[300px] bg-secondary/20">
+      <div className="relative flex-1 min-h-[420px] bg-secondary/20 lg:m-4 lg:mt-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border">
         <div ref={mapDiv} className="absolute inset-0" />
         {route && (
-          <div className="absolute left-3 right-3 bottom-3 glass-card rounded-2xl p-4 max-h-[40%] overflow-auto">
-            <div className="flex items-center justify-between mb-2">
-              <div>
+          <div className="absolute bottom-3 left-3 right-3 max-h-[45%] overflow-auto rounded-2xl p-4 glass-card lg:left-auto lg:w-[26rem]">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 mb-2">
+              <div className="min-w-0">
                 <p className="text-xs text-primary-glow">{tr("map.step", { i: stepIdx + 1, n: route.steps.length }, lang)}</p>
                 <p className="text-xs text-muted-foreground">{tr("map.summary", { km: (route.distanceMeters / 1000).toFixed(1), min: Math.round(route.durationSeconds / 60) }, lang)}</p>
                 {status && <p className="text-[10px] text-primary-glow mt-0.5">{status}</p>}

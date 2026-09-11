@@ -97,26 +97,26 @@ function Dashboard() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/60 border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" /> Home
           </Link>
-          <div className="flex items-center gap-2 font-semibold">
+          <div className="hidden items-center gap-2 font-semibold sm:flex">
             <div className="size-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Eye className="size-4 text-primary-foreground" />
             </div>
             Vision Companion
           </div>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center justify-self-end gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Wifi className="size-3.5" /> Online</span>
             <span className="flex items-center gap-1"><Battery className="size-3.5" /> 82%</span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        <div className="grid lg:grid-cols-3 gap-4 mb-8">
-          <div className="glass-card rounded-2xl p-6 lg:col-span-2">
+      <main className="max-w-7xl mx-auto px-4 py-6 pb-nav sm:px-6 lg:py-10">
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="glass-card rounded-2xl p-6 md:col-span-2">
             <div className="text-xs uppercase tracking-wider text-primary-glow mb-2">{t("dashboard.welcome")}</div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">{t("dashboard.greeting")}</h1>
             <p className="text-sm text-muted-foreground mb-4">

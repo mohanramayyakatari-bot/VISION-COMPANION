@@ -39,7 +39,7 @@ function HistoryPage() {
     <div className="min-h-dvh">
       <SpatialBackdrop />
       <header className="sticky top-0 z-30 glass-sheet">
-        <div className="mx-auto flex h-16 max-w-md items-center gap-3 px-4">
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link to="/" aria-label={t("common.home")} className="grid size-11 place-items-center rounded-full glass-panel">
             <ArrowLeft className="size-5" aria-hidden />
           </Link>
@@ -47,7 +47,7 @@ function HistoryPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 pt-5 pb-nav space-y-4">
+      <main className="mx-auto max-w-5xl px-4 pt-5 pb-nav space-y-4 sm:px-6 lg:pt-10">
         <p className="text-sm text-muted-foreground">{t("history.sub")}</p>
 
         {items.length === 0 ? (
@@ -56,7 +56,7 @@ function HistoryPage() {
           </GlassCard>
         ) : (
           <>
-            <ul className="space-y-2">
+            <ul className="grid gap-3 md:grid-cols-2">
               {items.map((it) => (
                 <li key={it.id}>
                   <GlassCard className="flex items-center gap-3 rounded-2xl p-4 animate-rise">

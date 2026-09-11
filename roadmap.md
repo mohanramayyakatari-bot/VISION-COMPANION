@@ -3,4 +3,4 @@
 - [x] Remove Color Detect mode from all screens, voice commands, and AI prompts
 - [x] Switch the app to a white/light high-contrast theme
 - [x] Add the supplied Vision Companion logo and matching browser icon
-- [ ] Optimize the full app for mobile and desktop website layouts
+- [x] Optimize the full app for mobile and desktop website layouts

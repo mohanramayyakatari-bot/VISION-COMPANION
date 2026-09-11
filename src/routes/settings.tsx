@@ -81,15 +81,17 @@ function SettingsPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label={T("common.back")}>
-          <ArrowLeft className="size-4" /> {T("common.back")}
-        </Link>
-        <h1 className="text-sm font-semibold">{T("settings.title")}</h1>
-        <span className="w-12" />
+      <header className="border-b border-border">
+        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-4 py-3 sm:px-6">
+          <Link to="/" className="inline-flex min-h-11 items-center gap-2 justify-self-start text-sm text-muted-foreground hover:text-foreground" aria-label={T("common.back")}>
+            <ArrowLeft className="size-4 shrink-0" /> <span className="truncate">{T("common.back")}</span>
+          </Link>
+          <h1 className="text-sm font-semibold">{T("settings.title")}</h1>
+          <span />
+        </div>
       </header>
 
-      <main className="p-4 space-y-4 max-w-lg mx-auto">
+      <main className="mx-auto grid max-w-6xl gap-4 p-4 pb-nav sm:px-6 lg:grid-cols-2 lg:gap-6 lg:py-8">
         <section className="glass-card rounded-2xl p-4" aria-labelledby="lang-h">
           <h2 id="lang-h" className="text-sm font-semibold flex items-center gap-2 mb-3">
             <Languages className="size-4 text-primary-glow" /> {T("settings.language")}
@@ -116,7 +118,7 @@ function SettingsPage() {
           <h2 id="speech-h" className="text-sm font-semibold flex items-center gap-2 mb-3">
             <Volume2 className="size-4 text-primary-glow" /> {T("settings.speech")}
           </h2>
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="secondary" className="flex-1" onClick={() => say(INTRO[lang], lang, "general", { force: true })} aria-label={T("settings.testVoice")}>
               <Volume2 className="size-4" /> {T("settings.testVoice")}
             </Button>

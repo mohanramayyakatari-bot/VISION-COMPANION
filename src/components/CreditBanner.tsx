@@ -84,7 +84,7 @@ export function CreditBanner() {
       aria-live="polite"
       aria-label={timeLabel ? `${msg.label} — ${timeLabel}` : msg.label}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className="size-4 shrink-0" aria-hidden />
           <span className="text-sm font-semibold truncate">{msg.label}</span>

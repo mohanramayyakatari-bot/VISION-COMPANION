@@ -157,7 +157,7 @@ function EmergencyPage() {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b-2 border-border">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-4 sm:px-6">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" /> {tk("common.home")}
           </Link>
@@ -166,7 +166,7 @@ function EmergencyPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 pb-28">
+      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 pb-nav sm:px-6 lg:grid-cols-[minmax(20rem,0.8fr)_minmax(0,1.2fr)] lg:items-start">
         <section className="glass-card rounded-3xl p-6 border-2 border-destructive/60">
           <Button
             onClick={() => void sendAll()}
@@ -208,7 +208,7 @@ function EmergencyPage() {
 
           <ul className="space-y-2">
             {contacts.map((c, i) => (
-              <li key={c.id} className="glass-card rounded-2xl p-4 flex items-center gap-3 border-2 border-border">
+              <li key={c.id} className="glass-card grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border-2 border-border p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                 <div className="flex flex-col">
                   <button aria-label={tk("emergency.moveUp")} disabled={i === 0} onClick={() => { moveContact(c.id, -1); refresh(); }} className="disabled:opacity-30"><ChevronUp className="size-4" /></button>
                   <button aria-label={tk("emergency.moveDown")} disabled={i === contacts.length - 1} onClick={() => { moveContact(c.id, 1); refresh(); }} className="disabled:opacity-30"><ChevronDown className="size-4" /></button>
@@ -231,18 +231,20 @@ function EmergencyPage() {
                     </div>
                   )}
                 </div>
-                <a href={`tel:${c.phone}`} aria-label={`Call ${c.name}`}>
-                  <Button size="sm" variant="secondary" className="min-h-11"><PhoneCall className="size-4" /></Button>
-                </a>
-                <a href={smsHref(c.phone, message || "Emergency! I need help.")} aria-label={`Message ${c.name}`}>
-                  <Button size="sm" variant="secondary" className="min-h-11"><MessageSquare className="size-4" /></Button>
-                </a>
-                <Button size="sm" variant="secondary" className="min-h-11" aria-label="Edit contact" onClick={() => { setEditing(editing === c.id ? null : c.id); refresh(); }}>
-                  {editing === c.id ? <Check className="size-4" /> : <Pencil className="size-4" />}
-                </Button>
-                <Button size="sm" variant="secondary" className="min-h-11" aria-label={`Delete ${c.name}`} onClick={() => { deleteContact(c.id); refresh(); }}>
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
+                <div className="col-span-2 flex justify-end gap-2 sm:col-span-1">
+                  <a href={`tel:${c.phone}`} aria-label={`Call ${c.name}`}>
+                    <Button size="sm" variant="secondary" className="min-h-11"><PhoneCall className="size-4" /></Button>
+                  </a>
+                  <a href={smsHref(c.phone, message || "Emergency! I need help.")} aria-label={`Message ${c.name}`}>
+                    <Button size="sm" variant="secondary" className="min-h-11"><MessageSquare className="size-4" /></Button>
+                  </a>
+                  <Button size="sm" variant="secondary" className="min-h-11" aria-label="Edit contact" onClick={() => { setEditing(editing === c.id ? null : c.id); refresh(); }}>
+                    {editing === c.id ? <Check className="size-4" /> : <Pencil className="size-4" />}
+                  </Button>
+                  <Button size="sm" variant="secondary" className="min-h-11" aria-label={`Delete ${c.name}`} onClick={() => { deleteContact(c.id); refresh(); }}>
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </div>
               </li>
             ))}
             {!contacts.length && <li className="text-sm text-muted-foreground">{t.noContacts}</li>}
