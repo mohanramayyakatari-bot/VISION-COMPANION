@@ -215,6 +215,12 @@
   padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
 }
 
+@media (min-width: 1024px) {
+  .pb-nav {
+    padding-bottom: 8rem;
+  }
+}
+
 @keyframes pulse-ring {
   0% { transform: scale(0.9); opacity: 0.7; }
   100% { transform: scale(1.8); opacity: 0; }

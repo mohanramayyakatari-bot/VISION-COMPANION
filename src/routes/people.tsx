@@ -143,16 +143,16 @@ function PeoplePage() {
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b-2 border-border">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-6">
+          <Link to="/" className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" /> {tr("common.home", undefined, lang)}
           </Link>
-          <div className="font-bold flex items-center gap-2"><Users className="size-5 text-primary-glow" /> {tr("people.title", undefined, lang)}</div>
-          <Link to="/camera" search={{ mode: "face", lang, auto: false } as any} className="text-sm text-primary-glow font-semibold">{tr("people.recognize", undefined, lang)}</Link>
+          <div className="hidden font-bold sm:flex items-center gap-2"><Users className="size-5 text-primary-glow" /> {tr("people.title", undefined, lang)}</div>
+          <Link to="/camera" search={{ mode: "face", lang, auto: false } as any} className="justify-self-end text-right text-sm text-primary-glow font-semibold">{tr("people.recognize", undefined, lang)}</Link>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6 pb-28">
+      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 pb-nav sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-start">
         <section className="glass-card rounded-3xl p-5 border-2 border-border space-y-3">
           <h2 className="font-bold text-lg">
             {target ? tr("people.updatePhotos", { name: people.find((p) => p.id === target)?.name ?? "" }, lang) : tr("people.addPerson", undefined, lang)}
@@ -200,7 +200,7 @@ function PeoplePage() {
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("people.searchPeople", undefined, lang)} className="min-h-12" aria-label={tr("people.searchPeople", undefined, lang)} />
           <ul className="space-y-2">
             {shown.map((p) => (
-              <li key={p.id} className="glass-card rounded-2xl p-3 flex items-center gap-3 border-2 border-border">
+              <li key={p.id} className="glass-card grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border-2 border-border p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]">
                 <img
                   src={p.images[0] ?? p.file ?? ""}
                   alt={p.name}
