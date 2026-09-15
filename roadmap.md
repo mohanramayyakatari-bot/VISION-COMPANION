@@ -4,3 +4,4 @@
 - [x] Switch the app to a white/light high-contrast theme
 - [x] Add the supplied Vision Companion logo and matching browser icon
 - [x] Optimize the full app for mobile and desktop website layouts
+- [x] Correct home page alignment, spacing, sizing, and responsive wrapping
