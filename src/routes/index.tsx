@@ -112,7 +112,7 @@ function Index() {
 
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-sheet">
-        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-3 px-4 py-3 sm:h-16 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-6 sm:py-0">
           <div className="flex min-w-0 items-center gap-2.5">
             <VisionLens size={36} />
             <div className="min-w-0">
@@ -120,14 +120,14 @@ function Index() {
               <div className="truncate text-[0.7rem] text-muted-foreground">{t("home.tagline")}</div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex min-w-0 items-center justify-end gap-1.5">
             {(["en", "te", "hi"] as Lang[]).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
                 aria-pressed={lang === l}
                 aria-label={t("home.switchLang", { name: langLabel[l] })}
-                className={`min-h-10 rounded-full px-2.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring ${lang === l ? "bg-gradient-primary text-primary-foreground edge-glow" : "glass-panel text-muted-foreground"}`}
+                className={`min-h-10 min-w-0 rounded-full px-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring sm:px-2.5 ${lang === l ? "bg-gradient-primary text-primary-foreground edge-glow" : "glass-panel text-muted-foreground"}`}
               >
                 {langLabel[l]}
               </button>
@@ -144,13 +144,13 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pt-5 pb-nav space-y-8 sm:px-6 lg:pt-10">
+      <main className="mx-auto max-w-6xl space-y-8 px-4 pt-6 pb-nav sm:px-6 lg:pt-10">
         {/* Hero */}
         <section aria-labelledby="hero-title" className="animate-rise lg:max-w-3xl">
           <h1 id="hero-title" className="text-[2.6rem] font-black leading-[1.03] tracking-normal sm:text-5xl lg:text-6xl">
             {t("home.hero")}
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t("home.sub")}</p>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">{t("home.sub")}</p>
 
           <div className="mt-5 space-y-3 sm:max-w-xl">
             {!camOn && (
@@ -195,9 +195,9 @@ function Index() {
 
         {/* AI modes */}
         <section aria-labelledby="modes-title">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 id="modes-title" className="text-lg font-bold">{t("home.modes")}</h2>
-            <p className="truncate text-xs text-muted-foreground">{t("home.hint")}</p>
+          <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3">
+            <h2 id="modes-title" className="min-w-0 text-lg font-bold">{t("home.modes")}</h2>
+            <p className="max-w-[55vw] text-right text-xs text-muted-foreground sm:max-w-none">{t("home.hint")}</p>
           </div>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
             {MODES.map((m) => {
